@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+.vs/
+.idea/
+*.user
+*.log
+publishing/
+installation-backups/
+research/

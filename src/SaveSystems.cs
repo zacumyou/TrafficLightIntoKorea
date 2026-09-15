@@ -1,0 +1,5 @@
+using Game;
+namespace TrafficLightIntoKorea {
+public partial class OriginalSaveSystem:GameSystemBase {protected override void OnUpdate(){World.GetExistingSystemManaged<KoreanVisualLifecycleSystem>()?.BeforeSave();World.GetExistingSystemManaged<TrafficSignSystem>()?.BeforeSave();World.GetExistingSystemManaged<FarSignalSystem>()?.BeforeSave();World.GetExistingSystemManaged<ApproachSignalSystem>()?.BeforeSave();World.GetExistingSystemManaged<OverrideSystem>()?.BeginSave();World.GetExistingSystemManaged<IndividualSignalData>()?.BeforeSave();}}
+public partial class RestoreVisualSystem:GameSystemBase {protected override void OnUpdate(){World.GetExistingSystemManaged<IndividualSignalData>()?.AfterSave();World.GetExistingSystemManaged<OverrideSystem>()?.EndSave();World.GetExistingSystemManaged<FarSignalSystem>()?.AfterSave();World.GetExistingSystemManaged<ApproachSignalSystem>()?.AfterSave();World.GetExistingSystemManaged<TrafficSignSystem>()?.AfterSave();World.GetExistingSystemManaged<KoreanVisualLifecycleSystem>()?.AfterSave();}}
+}
