@@ -17,11 +17,11 @@ public partial class FarVisibilitySystem:GameSystemBase {
   return RenderRecoveryRules.ProtectFar(Mod.Settings.AddFarSignals,mode);
  }
  private void Refresh(Entity e){if(!EntityManager.HasComponent<Updated>(e))EntityManager.AddComponent<Updated>(e);if(!EntityManager.HasComponent<BatchesUpdated>(e))EntityManager.AddComponent<BatchesUpdated>(e);}
- protected override void OnUpdate(){if(!_ready||Mod.Settings==null||!Mod.Settings.Enabled)return;
+ protected override void OnUpdate(){using(RuntimeDiagnostics.Measure("FarVisibilitySystem.OnUpdate")){if(!_ready||Mod.Settings==null||!Mod.Settings.Enabled)return;
   using(var blocked=_blocked.ToEntityArray(Allocator.Temp))foreach(var e in blocked){if(!Active(e))continue;
    if(EntityManager.HasComponent<Overridden>(e))EntityManager.RemoveComponent<Overridden>(e);
-   if(EntityManager.HasComponent<Hidden>(e))EntityManager.RemoveComponent<Hidden>(e);
-   Refresh(e);RuntimeDiagnostics.Event("Far visibility protection restored "+e);
+   if(EntityManager.HasComponent<Hidden>(e))PersistentSignalVisibility.Show(EntityManager,e);
+   RuntimeDiagnostics.Count("far.visibilityRepair");Refresh(e);RuntimeDiagnostics.Event("Far visibility protection restored "+e);
   }
   float now=UnityEngine.Time.realtimeSinceStartup;if(now<_next)return;_next=now+.5f;
   var camera=World.GetExistingSystemManaged<CameraUpdateSystem>();if(camera==null||!camera.TryGetLODParameters(out var parameters)||camera.activeViewer==null)return;
@@ -43,9 +43,9 @@ public partial class FarVisibilitySystem:GameSystemBase {
     if(now<retry.Next)continue;
     retry.Next=now+RenderRecoveryRules.RetryDelay(retry.Attempts);retry.Attempts=math.min(retry.Attempts+1,3);
     if(EntityManager.HasComponent<FarVisibilityRetry>(e))EntityManager.SetComponentData(e,retry);else EntityManager.AddComponentData(e,retry);
-    Refresh(e);RuntimeDiagnostics.Event("Far culled-display recovery requested "+e+" stage="+retry.Attempts);
+    RuntimeDiagnostics.Count("far.cullingRepair");Refresh(e);RuntimeDiagnostics.Event("Far culled-display recovery requested "+e+" stage="+retry.Attempts);
    }
   }
- }
+ }}
 }
 }

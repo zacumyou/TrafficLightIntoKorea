@@ -1,0 +1,2 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net9.0</TargetFramework></PropertyGroup><ItemGroup><Compile Include="../src/SidecarStorage.cs" Link="SidecarStorage.cs"/>
+<Compile Include="../src/RestoreNodeState.cs" Link="RestoreNodeState.cs"/><Compile Include="../src/SignalChoice.cs" Link="SignalChoice.cs"/><Compile Include="../src/FarOffsetRules.cs" Link="FarOffsetRules.cs"/><Reference Include="Newtonsoft.Json"><HintPath>$(CSII_MANAGEDPATH)/Newtonsoft.Json.dll</HintPath></Reference></ItemGroup></Project>

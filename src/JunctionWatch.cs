@@ -14,7 +14,7 @@ internal sealed class JunctionWatch {
    if(em.HasBuffer<SubLane>(owner))foreach(var s in em.GetBuffer<SubLane>(owner,true)){var e=s.m_SubLane;hash=hash*31+e.GetHashCode();if(em.HasComponent<Deleted>(e)||em.HasComponent<Game.Tools.Temp>(e)){hash=hash*31-1;continue;}if(em.HasComponent<CarLane>(e))hash=hash*31+(int)em.GetComponentData<CarLane>(e).m_Flags;if(em.HasComponent<Lane>(e))hash=hash*31+em.GetComponentData<Lane>(e).GetHashCode();if(em.HasComponent<Curve>(e))hash=hash*31+em.GetComponentData<Curve>(e).m_Bezier.GetHashCode();if(em.HasComponent<LaneSignal>(e))hash=hash*31+em.GetComponentData<LaneSignal>(e).m_GroupMask;}
    if(em.HasBuffer<Game.Objects.SubObject>(owner))foreach(var s in em.GetBuffer<Game.Objects.SubObject>(owner,true)){var e=s.m_SubObject;hash=hash*31+e.GetHashCode();if(!em.Exists(e)||em.HasComponent<Deleted>(e)||em.HasComponent<Game.Tools.Temp>(e)){hash=hash*31-1;continue;}if(em.HasComponent<Game.Objects.Transform>(e))hash=hash*31+em.GetComponentData<Game.Objects.Transform>(e).GetHashCode();if(em.HasComponent<Game.Prefabs.PrefabRef>(e))hash=hash*31+em.GetComponentData<Game.Prefabs.PrefabRef>(e).m_Prefab.GetHashCode();if(em.HasComponent<Game.Objects.TrafficLight>(e)){var state=em.GetComponentData<Game.Objects.TrafficLight>(e);hash=hash*31+state.m_GroupMask0;hash=hash*31+state.m_GroupMask1;}}
   }
-  if(_hashes[owner]!=hash){_hashes[owner]=hash;enqueue(owner);}
+  if(_hashes[owner]!=hash){RuntimeDiagnostics.Count("junction.fingerprintChanged");_hashes[owner]=hash;enqueue(owner);}
  }
 }
 }

@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
- <PropertyGroup><Version>2.3.28</Version><AssemblyTitle>TRAFFIC LIGHT INTO KOREA</AssemblyTitle><Product>TRAFFIC LIGHT INTO KOREA</Product><AssemblyName>TrafficLightIntoKorea</AssemblyName></PropertyGroup>
+ <PropertyGroup><Version>2.3.40</Version><AssemblyTitle>TRAFFIC LIGHT INTO KOREA</AssemblyTitle><Product>TRAFFIC LIGHT INTO KOREA</Product><AssemblyName>TrafficLightIntoKorea</AssemblyName></PropertyGroup>
  <Import Project="$(CSII_TOOLPATH)\Mod.props" />
  <Import Project="$(CSII_TOOLPATH)\Mod.targets" />
  <PropertyGroup>
@@ -29,7 +29,7 @@
 </ItemGroup>
  <Target Name="DeployWIP" />
  <ItemGroup><None Include="../package/KoreanJunction.svg" Link="KoreanJunction.svg" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
-<ItemGroup><EmbeddedResource Include="../package/IndividualSignals.js" LogicalName="TrafficLightIntoKorea.IndividualSignals.js" /><None Include="../package/IndividualSignals.js" Link="IndividualSignals.js" CopyToOutputDirectory="PreserveNewest" /><None Include="../package/IndividualSignal.svg" Link="IndividualSignal.svg" CopyToOutputDirectory="PreserveNewest" /></ItemGroup><ItemGroup><None Include="../package/Icons/*.svg" Link="Icons/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup></Project>
+<ItemGroup><EmbeddedResource Include="../package/IndividualSignals.js" LogicalName="TrafficLightIntoKorea.IndividualSignals.js" /><None Include="../package/IndividualSignals.js" Link="IndividualSignals.js" CopyToOutputDirectory="PreserveNewest" /><None Include="../package/IndividualSignal.svg" Link="IndividualSignal.svg" CopyToOutputDirectory="PreserveNewest" /></ItemGroup><ItemGroup><None Include="../package/Icons/*.svg" Link="Icons/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup><ItemGroup><EmbeddedResource Include="../package/lang/*.json" LogicalName="TrafficLightIntoKorea.lang.%(Filename)%(Extension)" /><None Include="../package/lang/*.json" Link="lang/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup></Project>
 
 
 

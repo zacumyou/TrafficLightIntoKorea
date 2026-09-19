@@ -1,5 +1,7 @@
 (function () {
   if (window.tlkIndividual) { return; }
+  var translations={};
+  function tr(text){return translations[text] || text;}
   var panel = null, x = 300, y = 220, position = null, drag = null, activeList = null, assetFilter = 'all', lampFilter='all', poleFilter='all', placementOpen=false, activeTab = 0;
   var css = document.createElement('style');
   css.textContent = [
@@ -49,21 +51,21 @@
   function clickSound() { engine.trigger('audio.playSound', 'select-item', 1); }
   function send(value) { clickSound(); engine.trigger('tlkIndividual.choose', value); }
   function bind(button, value) { button.type = 'button'; button.addEventListener('click', function (e) { e.stopPropagation(); send(value); }); }
-  function action(parent, label, value, glyph, danger) { var b = element('button', 'tlki-action'+(danger?' tlki-danger':''), '', parent); b.appendChild(icon(glyph, danger?'#f19498':null)); element('span', '', label, b); bind(b, value); }
-  function place() {if(!panel)return;if(!position)position=[x+18,y];var rect=panel.getBoundingClientRect();position[0]=Math.max(8,Math.min(position[0],window.innerWidth-rect.width-8));position[1]=Math.max(8,Math.min(position[1],window.innerHeight-rect.height-8));panel.style.left=position[0]+'px';panel.style.top=position[1]+'px';}
+  function action(parent, label, value, glyph, danger) { var b = element('button', 'tlki-action'+(danger?' tlki-danger':''), '', parent); b.appendChild(icon(glyph, danger?'#f19498':null)); element('span', '', label, b); bind(b, value); return b; }
+  function place() {if(!panel)return;if(!position)position=[x+18,64];panel.style.maxHeight=Math.max(120,window.innerHeight-144)+'px';var rect=panel.getBoundingClientRect();position[0]=Math.max(8,Math.min(position[0],window.innerWidth-rect.width-8));position[1]=Math.max(8,Math.min(position[1],window.innerHeight-rect.height-8));panel.style.left=position[0]+'px';panel.style.top=position[1]+'px';}
   var sliderDrag=null;
   function controlIcon(name,parent){var img=element('img','tlki-control-icon','',parent);img.src='coui://tlk/Icons/'+name+'.svg';img.alt='';return img;}
   function transformControl(parent,model,key,title,unit,min,max,step,command,glyph,left,right){
     var card=element('div','tlki-control-card','',parent),head=element('div','tlki-control-head','',card);
     controlIcon(glyph,head);element('span','tlki-control-title',title,head);
     var readout=element('span','tlki-control-value',''),value=Number(model[key])||0;
-    var reset=element('button','tlki-control-reset','');reset.type='button';reset.title=title+' 초기화';reset.setAttribute('aria-label',reset.title);controlIcon('Reset',reset);
+    var reset=element('button','tlki-control-reset','');reset.type='button';reset.title=title+tr(' 초기화');reset.setAttribute('aria-label',reset.title);controlIcon('Reset',reset);
     var row=element('div','tlki-control-row','',card);
     function nudge(iconName,amount,label){var b=element('button','tlki-nudge','',row);b.type='button';b.title=label;b.setAttribute('aria-label',label);controlIcon(iconName,b);b.addEventListener('click',function(e){e.stopPropagation();set(value+amount);commit();});return b;}
-    nudge('Minus',-step,'한 단계 줄이기');
+    nudge('Minus',-step,tr('한 단계 줄이기'));
     var track=element('div','tlki-slider','',row);track.tabIndex=0;track.setAttribute('role','slider');track.setAttribute('aria-label',title);track.setAttribute('aria-valuemin',String(min));track.setAttribute('aria-valuemax',String(max));
     var rail=element('div','tlki-slider-rail','',track),fill=element('div','tlki-slider-fill','',rail);element('div','tlki-slider-zero','',rail);var thumb=element('div','tlki-slider-thumb','',rail);
-    nudge('Plus',step,'한 단계 늘리기');
+    nudge('Plus',step,tr('한 단계 늘리기'));
     function set(next){value=Math.max(min,Math.min(max,Math.round(next/step)*step));var text=value.toFixed(step<1?1:0);readout.textContent=text+' '+unit;track.setAttribute('aria-valuenow',text);track.setAttribute('aria-valuetext',text+' '+unit);var percent=100*(value-min)/(max-min);fill.style.width=percent+'%';thumb.style.left=percent+'%';}
     function commit(){model[key]=value;send(command+':'+value.toFixed(step<1?1:0));}
     function move(e){var r=track.getBoundingClientRect();if(r.width>0)set(min+(max-min)*Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)));}
@@ -80,13 +82,14 @@
     var img=document.createElement('img');img.alt='';img.setAttribute('aria-hidden','true');img.style.width='26px';img.style.height='26px';img.style.flexShrink='0';img.style.marginRight='6px';
     img.src='coui://tlk/Icons/'+key+'.svg';return img;
   }
-  function signLabel(name){var suffix=name.replace('CSKRTrafficLightSign','');return {StraightLeft:'직좌 동시',StraightThenStraightLeft:'직진 → 직좌',StraightLeftThenStraight:'직좌 → 직진',BanLeft:'좌회전 금지',BanRight:'우회전 금지',BanStraight:'직진 금지',BanUTurn:'유턴 금지'}[suffix]||suffix.replace('Speed','')+' km/h';}
+  function signLabel(name){var suffix=name.replace('CSKRTrafficLightSign','');return {StraightLeft:tr('직좌 동시'),StraightThenStraightLeft:tr('직진 → 직좌'),StraightLeftThenStraight:tr('직좌 → 직진'),BanLeft:tr('좌회전 금지'),BanRight:tr('우회전 금지'),BanStraight:tr('직진 금지'),BanUTurn:tr('유턴 금지')}[suffix]||suffix.replace('Speed','')+' km/h';}
   window.addEventListener('resize',place);
   window.tlkIndividual = {
 
     close: close,
     dispose: function () { close(); css.remove(); window.removeEventListener('resize',place); document.removeEventListener('mousemove', pointer); document.removeEventListener('mouseup',stopDrag);window.removeEventListener('blur',stopDrag);delete window.tlkIndividual; },
     show: function (model) {
+      translations=model.texts||{};
       var previous=panel?{list:activeList?activeList.scrollTop:0,panel:panel.scrollTop}:null;
       close(); panel = element('div', 'tlki-panel'); panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', model.title);
       panel.style.left = Math.max(8, Math.min(x + 18, window.innerWidth - 442)) + 'px'; panel.style.top = Math.max(8, y) + 'px';
@@ -95,18 +98,18 @@
       var grip=document.createElement('img');grip.className='tlki-grip';grip.alt='';grip.setAttribute('aria-hidden','true');
       grip.src='coui://tlk/Icons/Grip.svg';header.appendChild(grip);header.appendChild(heading);
       header.addEventListener('mousedown',function(e){if(e.button!==0)return;var target=e.target;while(target&&target!==header){if(target.tagName==='BUTTON'||target.tag==='button')return;target=target.parentNode;}place();drag=[e.clientX-position[0],e.clientY-position[1]];panel.style.transformOrigin='0 0';panel.style.opacity='.76';panel.style.transform='scale(.96)';e.preventDefault();e.stopPropagation();});
-      var exit = element('button', 'tlki-close', '', header); exit.title = '닫기'; exit.setAttribute('aria-label', '닫기'); exit.appendChild(icon('close','#ff989e',18)); bind(exit, 'close');
+      var exit = element('button', 'tlki-close', '', header); exit.title = tr('닫기'); exit.setAttribute('aria-label', tr('닫기')); exit.appendChild(icon('close','#ff989e',18)); bind(exit, 'close');
       if (model.status) { element('div', 'tlki-status', model.status, panel); }
       var signalPanel=element('div',''),signPanel=element('div',''),propsPanel=element('div','');
-      var tabs=element('div','tlki-tabs','',panel);tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','신호등 편집 항목');var tabButtons=['신호등','표지판','기타 요소'].map(function(label){return element('button','tlki-tab',label,tabs);});
+      var tabs=element('div','tlki-tabs','',panel);tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label',tr('신호등 편집 항목'));var tabButtons=[tr('신호등'),tr('표지판'),tr('기타 요소')].map(function(label){return element('button','tlki-tab',label,tabs);});
       function selectTab(index){activeTab=index;[signalPanel,signPanel,propsPanel].forEach(function(part,i){var selected=i===index;part.style.display=selected?'block':'none';part.setAttribute('role','tabpanel');part.setAttribute('id','tlki-tab-panel-'+i);part.setAttribute('aria-labelledby','tlki-tab-'+i);tabButtons[i].className='tlki-tab'+(selected?' tlki-tab-active':'');tabButtons[i].style.color=selected?'#86ceff':'#a6b2bf';tabButtons[i].setAttribute('role','tab');tabButtons[i].setAttribute('id','tlki-tab-'+i);tabButtons[i].setAttribute('aria-controls','tlki-tab-panel-'+i);tabButtons[i].setAttribute('aria-selected',selected?'true':'false');});place();}
       tabButtons.forEach(function(button,i){button.type='button';button.addEventListener('click',function(e){e.stopPropagation();clickSound();selectTab(i);});});
       panel.appendChild(signalPanel);panel.appendChild(signPanel);panel.appendChild(propsPanel);var assets = (model.assets || []).filter(function(item){var name=typeof item==='string'?item:item.name;var combined=/crosswalk/i.test(name),left=/Left01$/i.test(name);return (lampFilter==='all'||new RegExp(lampFilter,'i').test(name))&&(poleFilter==='all'||(poleFilter==='left'?left:!left))&&(assetFilter==='all'||(assetFilter==='combined'?combined:!combined));});
       function filterGroup(label,group,selected,options){var filters=element('div','tlki-filters','',signalPanel);filters.setAttribute('role','group');filters.setAttribute('aria-label',label);element('span','tlki-filter-label',label,filters);options.forEach(function(entry){var button=element('button','tlki-filter'+(selected===entry[0]?' tlki-filter-active':''),entry[1],filters);button.type='button';button.setAttribute('aria-pressed',selected===entry[0]?'true':'false');button.addEventListener('click',function(e){e.stopPropagation();if(selected===entry[0])return;clickSound();if(group==='lamp')lampFilter=entry[0];else if(group==='pole')poleFilter=entry[0];else assetFilter=entry[0];if(activeList)activeList.scrollTop=0;window.tlkIndividual.show(model);});});}
-      filterGroup('구 수','lamp',lampFilter,[['all','전체'],['3w','3구'],['4w','4구']]);
-      filterGroup('기둥','pole',poleFilter,[['all','전체'],['left','좌 기둥'],['right','우 기둥']]);
-      filterGroup('보행등','type',assetFilter,[['all','전체'],['signal','신호등만'],['combined','보행자 겸용']]);
-      if(model.currentAsset){element('div','tlki-current-summary','현재 표시 · '+assetLabel(model.currentAsset),signalPanel);}
+      filterGroup(tr('구 수'),'lamp',lampFilter,[['all',tr('전체')],['3w',tr('3구')],['4w',tr('4구')]]);
+      filterGroup(tr('기둥'),'pole',poleFilter,[['all',tr('전체')],['left',tr('좌 기둥')],['right',tr('우 기둥')]]);
+      filterGroup(tr('보행등'),'type',assetFilter,[['all',tr('전체')],['signal',tr('신호등만')],['combined',tr('보행자 겸용')]]);
+      if(model.currentAsset){element('div','tlki-current-summary',tr('현재 표시 · ')+assetLabel(model.currentAsset),signalPanel);}
       var list = element('div', 'tlki-list', '', signalPanel), selectedRow = null;
       activeList=list;
       var gridLine;
@@ -114,44 +117,44 @@
         if(index%3===0){gridLine=element('div','tlki-grid-line','',list);}
         var name = typeof item === 'string' ? item : item.name, thumbnail = typeof item === 'string' ? '' : item.thumbnail;
         var selected = name === model.currentAsset;
-        var row = element('button', 'tlki-row'+(selected?' tlki-selected':''), '', gridLine); row.title = name; row.setAttribute('aria-pressed',selected?'true':'false'); row.setAttribute('aria-label',assetLabel(name)+(selected?' · 현재 표시':'')); if(selected){selectedRow=row;}
+        var row = element('button', 'tlki-row'+(selected?' tlki-selected':''), '', gridLine); row.title = name; row.setAttribute('aria-pressed',selected?'true':'false'); row.setAttribute('aria-label',assetLabel(name)+(selected?tr(' · 현재 표시'):'')); if(selected){selectedRow=row;}
         var tile = element('span', 'tlki-thumb', '', row), img = document.createElement('img');
         img.addEventListener('load',function(){var w=img.naturalWidth,h=img.naturalHeight;if(w>0&&h>0){var scale=100/Math.max(w,h);img.style.width=(w*scale)+'px';img.style.height=(h*scale)+'px';}});
         img.alt = ''; img.src = thumbnail || model.placeholder || 'Media/Placeholder.svg';
         img.addEventListener('error', function () { if (img.fallbackUsed) { img.style.visibility = 'hidden'; return; } img.fallbackUsed = true; img.src = model.placeholder || 'Media/Placeholder.svg'; });
-        tile.appendChild(img); element('span', 'tlki-name', assetLabel(name), row); if(selected){var badge=element('span','tlki-current','',row);badge.style.display='flex';badge.style.alignItems='center';var check=document.createElement('img');check.alt='';check.setAttribute('aria-hidden','true');check.style.width='12px';check.style.height='12px';check.style.marginRight='3px';check.style.flexShrink='0';check.src='coui://tlk/Icons/Current.svg';badge.appendChild(check);element('span','','현재 표시',badge);} bind(row, 'asset:' + name);
+        tile.appendChild(img); element('span', 'tlki-name', assetLabel(name), row); if(selected){var badge=element('span','tlki-current','',row);badge.style.display='flex';badge.style.alignItems='center';var check=document.createElement('img');check.alt='';check.setAttribute('aria-hidden','true');check.style.width='12px';check.style.height='12px';check.style.marginRight='3px';check.style.flexShrink='0';check.src='coui://tlk/Icons/Current.svg';badge.appendChild(check);element('span','',tr('현재 표시'),badge);} bind(row, 'asset:' + name);
       });
-      if (!assets.length) { element('div', 'tlki-empty', '이 분류에 표시할 에셋이 없습니다. 모드 옵션에서 에셋을 추가하세요.', list); }
-      if(model.far){var fold=element('button','tlki-placement-toggle','',signalPanel);fold.type='button';var foldIcon=element('img','tlki-control-icon','',fold);foldIcon.src='coui://tlk/Icons/Chevron.svg';foldIcon.alt='';element('span','','세부 배치',fold);var controls=element('div','tlki-transform-controls','',signalPanel);function foldState(){fold.setAttribute('aria-expanded',placementOpen?'true':'false');controls.style.display=placementOpen?'block':'none';foldIcon.style.transform=placementOpen?'rotate(90deg)':'rotate(0deg)';}fold.addEventListener('click',function(e){e.stopPropagation();placementOpen=!placementOpen;foldState();place();});foldState();
-        transformControl(controls,model,'farOffset','앞뒤 위치','m',-3,3,.1,'offset','Move','원본 쪽으로','원본에서 멀리');
-        transformControl(controls,model,'farLateral','좌우 위치','m',-3,3,.1,'lateral','Lateral','왼쪽으로','오른쪽으로');
-        transformControl(controls,model,'farRotation','회전 각도','도',-45,45,1,'rotation','Rotate','왼쪽 회전','오른쪽 회전');
-        element('div','tlki-control-help','드래그 후 놓으면 적용됩니다. 양옆 버튼으로 미세 조절할 수 있습니다.',controls);
+      if (!assets.length) { element('div', 'tlki-empty', tr('이 분류에 표시할 에셋이 없습니다. 모드 옵션에서 에셋을 추가하세요.'), list); }
+      {var fold=element('button','tlki-placement-toggle','',signalPanel);fold.type='button';var foldIcon=element('img','tlki-control-icon','',fold);foldIcon.src='coui://tlk/Icons/Chevron.svg';foldIcon.alt='';element('span','',tr('세부 배치'),fold);var controls=element('div','tlki-transform-controls','',signalPanel);function foldState(){fold.setAttribute('aria-expanded',placementOpen?'true':'false');controls.style.display=placementOpen?'block':'none';foldIcon.style.transform=placementOpen?'rotate(90deg)':'rotate(0deg)';}fold.addEventListener('click',function(e){e.stopPropagation();placementOpen=!placementOpen;foldState();place();});foldState();
+        transformControl(controls,model,'farOffset',tr('앞뒤 위치'),'m',-3,3,.1,'offset','Move',model.far?tr('원본 쪽으로'):tr('뒤로'),model.far?tr('원본에서 멀리'):tr('앞으로'));
+        transformControl(controls,model,'farLateral',tr('좌우 위치'),'m',-3,3,.1,'lateral','Lateral',tr('왼쪽으로'),tr('오른쪽으로'));
+        transformControl(controls,model,'farRotation',tr('회전 각도'),tr('도'),model.far?-90:-45,model.far?90:45,1,'rotation','Rotate',tr('왼쪽 회전'),tr('오른쪽 회전'));
+        element('div','tlki-control-help',tr('드래그 후 놓으면 적용됩니다. 양옆 버튼으로 미세 조절할 수 있습니다.'),controls);
       }
-      var actions = element('div', 'tlki-actions', '', signalPanel);
-      action(actions, '에셋 자동 선택으로 되돌리기', 'reset', 'reset');
-      if (model.far) { if(model.nearHidden)action(actions,'본 위치 신호등 살리기','restoreNear','reset');action(actions, '이 맞은편 신호등만 삭제', 'delete', 'trash', true); }
-      else { if(model.farReady)action(actions,'본 위치 신호등만 숨기기','hideNear','trash');else element('div','tlki-control-help','맞은편 신호등을 생성한 뒤 본 위치 신호등만 숨길 수 있습니다.',actions);action(actions, '맞은편 신호등 추가 요청', 'add', 'add'); action(actions, '맞은편 생성 여부를 자동으로 되돌리기', 'auto', 'auto'); }
-      [1,2,3].forEach(function(kind){element('div','tlki-section',['속도 제한','신호 체계','금지 표지판'][kind-1],signPanel);if(!model.mounts||!model.mounts[kind-1]){element('div','tlki-empty','이 에셋에는 해당 표지판 부착 위치가 없습니다.',signPanel);return;}var group=element('div','tlki-sign-group', '',signPanel);group.setAttribute('role','radiogroup');group.setAttribute('aria-label',['속도 제한','신호 체계','금지 표지판'][kind-1]);group.style.display='flex';group.style.flexWrap='wrap';group.style.padding='0 18px 10px';var selected=(model.selections||[])[kind-1]||'auto';function option(value,label){var row=element('button','tlki-sign-choice','',group);row.type='button';row.style.width='31.33333%';row.style.margin='3px 1%';row.style.flexShrink='0';row.style.padding='9px 7px';row.style.display='flex';row.style.alignItems='center';row.style.minHeight='54px';row.style.borderRadius='6px';row.style.border='1px solid '+(selected===value?'rgba(125,199,237,.9)':'rgba(255,255,255,.17)');row.style.backgroundColor=selected===value?'rgba(60,142,187,.35)':'rgba(255,255,255,.035)';row.style.fontSize='11px';row.style.textAlign='left';row.style.whiteSpace='normal';row.setAttribute('role','radio');row.setAttribute('aria-checked',selected===value?'true':'false');row.appendChild(signIcon(value));var labelNode=element('span','',label,row);labelNode.style.minWidth='0';labelNode.style.lineHeight='1.35';labelNode.style.wordBreak='keep-all';row.addEventListener('click',function(e){e.stopPropagation();send('sign:'+kind+':'+value);});}option('auto','자동');option('none','표시 안함');(model.signs||[]).filter(function(n){return signKind(n)===kind;}).forEach(function(n){option(n,signLabel(n));});});
-      element('div','tlki-note','유형별 하나만 선택됩니다. 수동 표지판은 통행 규칙을 바꾸지 않습니다. 금지 자동 선택 우선순위: 직진 · 좌회전 · 우회전 · 유턴.',signPanel);
+      var actions = element('div', 'tlki-actions', '', signalPanel); action(actions,tr('커서로 복제 신호등 배치 (60m)'), 'manual', 'add');
+      action(actions, tr('에셋 자동 선택으로 되돌리기'), 'reset', 'reset');
+      if (model.far) { if(model.nearHidden)action(actions,tr('본 위치 신호등 살리기'),'restoreNear','reset');action(actions, tr('이 맞은편 신호등만 삭제'), 'delete', 'trash', true); }
+      else { if(model.farReady)action(actions,tr('본 위치 신호등만 숨기기'),'hideNear','trash');else element('div','tlki-control-help',tr('맞은편 신호등을 생성한 뒤 본 위치 신호등만 숨길 수 있습니다.'),actions);var addButton=action(actions,model.farAddFailed?tr('불가능한 위치'):model.farAddPending?tr('위치 확인 중…'):tr('맞은편 신호등 추가 요청'),'add','add');addButton.disabled=!!(model.farAddFailed||model.farAddPending);addButton.style.color=model.farAddFailed?'#ff6b70':'';addButton.setAttribute('aria-live','polite'); action(actions, tr('맞은편 생성 여부를 자동으로 되돌리기'), 'auto', 'auto'); }
+      [1,2,3].forEach(function(kind){element('div','tlki-section',[tr('속도 제한'),tr('신호 체계'),tr('금지 표지판')][kind-1],signPanel);if(!model.mounts||!model.mounts[kind-1]){element('div','tlki-empty',tr('이 에셋에는 해당 표지판 부착 위치가 없습니다.'),signPanel);return;}var group=element('div','tlki-sign-group', '',signPanel);group.setAttribute('role','radiogroup');group.setAttribute('aria-label',[tr('속도 제한'),tr('신호 체계'),tr('금지 표지판')][kind-1]);group.style.display='flex';group.style.flexWrap='wrap';group.style.padding='0 18px 10px';var selected=(model.selections||[])[kind-1]||'auto';function option(value,label){var row=element('button','tlki-sign-choice','',group);row.type='button';row.style.width='31.33333%';row.style.margin='3px 1%';row.style.flexShrink='0';row.style.padding='9px 7px';row.style.display='flex';row.style.alignItems='center';row.style.minHeight='54px';row.style.borderRadius='6px';row.style.border='1px solid '+(selected===value?'rgba(125,199,237,.9)':'rgba(255,255,255,.17)');row.style.backgroundColor=selected===value?'rgba(60,142,187,.35)':'rgba(255,255,255,.035)';row.style.fontSize='11px';row.style.textAlign='left';row.style.whiteSpace='normal';row.setAttribute('role','radio');row.setAttribute('aria-checked',selected===value?'true':'false');row.appendChild(signIcon(value));var labelNode=element('span','',label,row);labelNode.style.minWidth='0';labelNode.style.lineHeight='1.35';labelNode.style.wordBreak='keep-all';row.addEventListener('click',function(e){e.stopPropagation();send('sign:'+kind+':'+value);});}option('auto',tr('자동'));option('none',tr('표시 안함'));(model.signs||[]).filter(function(n){return signKind(n)===kind;}).forEach(function(n){option(n,signLabel(n));});});
+      element('div','tlki-note',tr('유형별 하나만 선택됩니다. 수동 표지판은 통행 규칙을 바꾸지 않습니다. 금지 자동 선택 우선순위: 직진 · 좌회전 · 우회전 · 유턴.'),signPanel);
       if((model.roadNames||[]).length){
-        element('div','tlki-section','도로명 표지판',propsPanel);
-        var roadGroup=element('div','tlki-sign-group','',propsPanel);roadGroup.style.display='flex';roadGroup.style.padding='8px 18px';roadGroup.setAttribute('role','radiogroup');roadGroup.setAttribute('aria-label','도로명 표지판 종류');
-        (model.roadNames||[]).forEach(function(item){var chosen=model.roadName===item.name;var button=element('button','tlki-sign-choice','',roadGroup);button.type='button';button.style.width='31.33333%';button.style.margin='0 1%';button.style.padding='8px';button.style.border='1px solid '+(chosen?'#75cafa':'#56616d');button.style.background=chosen?'#254d65':'#202a32';button.style.borderRadius='6px';button.setAttribute('role','radio');button.setAttribute('aria-checked',chosen?'true':'false');button.title=item.name;var thumb=element('img','','',button);thumb.src=item.thumbnail||model.placeholder;thumb.alt='';thumb.style.width='64px';thumb.style.height='52px';thumb.style.objectFit='contain';thumb.addEventListener('error',function(){if(thumb.fallbackUsed)return;thumb.fallbackUsed=true;thumb.src=model.placeholder;});element('div','',item.name==='CSKRRoadNameSignBoth'?'양쪽':item.name==='CSKRRoadNameSignLeft'?'왼쪽':'오른쪽',button);button.addEventListener('click',function(e){e.stopPropagation();send('roadname:'+item.name);});});
-        var roadReset=element('button','tlki-sign-choice','원래 구성으로 되돌리기',propsPanel);roadReset.type='button';roadReset.style.margin='4px 18px 12px';roadReset.setAttribute('aria-pressed',model.roadNameOriginal?'true':'false');roadReset.addEventListener('click',function(e){e.stopPropagation();send('roadname:');});
+        element('div','tlki-section',tr('도로명 표지판'),propsPanel);
+        var roadGroup=element('div','tlki-sign-group','',propsPanel);roadGroup.style.display='flex';roadGroup.style.padding='8px 18px';roadGroup.setAttribute('role','radiogroup');roadGroup.setAttribute('aria-label',tr('도로명 표지판 종류'));
+        (model.roadNames||[]).forEach(function(item){var chosen=model.roadName===item.name;var button=element('button','tlki-sign-choice','',roadGroup);button.type='button';button.style.width='31.33333%';button.style.margin='0 1%';button.style.padding='8px';button.style.border='1px solid '+(chosen?'#75cafa':'#56616d');button.style.background=chosen?'#254d65':'#202a32';button.style.borderRadius='6px';button.setAttribute('role','radio');button.setAttribute('aria-checked',chosen?'true':'false');button.title=item.name;var thumb=element('img','','',button);thumb.src=item.thumbnail||model.placeholder;thumb.alt='';thumb.style.width='64px';thumb.style.height='52px';thumb.style.objectFit='contain';thumb.addEventListener('error',function(){if(thumb.fallbackUsed)return;thumb.fallbackUsed=true;thumb.src=model.placeholder;});element('div','',item.name==='CSKRRoadNameSignBoth'?tr('양쪽'):item.name==='CSKRRoadNameSignLeft'?tr('왼쪽'):tr('오른쪽'),button);button.addEventListener('click',function(e){e.stopPropagation();send('roadname:'+item.name);});});
+        var roadReset=element('button','tlki-sign-choice',tr('원래 구성으로 되돌리기'),propsPanel);roadReset.type='button';roadReset.style.margin='4px 18px 12px';roadReset.setAttribute('aria-pressed',model.roadNameOriginal?'true':'false');roadReset.addEventListener('click',function(e){e.stopPropagation();send('roadname:');});
       }
       var propsGrid=element('div','tlki-props-grid','',propsPanel);propsGrid.style.display='flex';propsGrid.style.flexWrap='wrap';propsGrid.style.padding='12px 18px';
       (model.props||[]).forEach(function(item){
-        var button=element('button','tlki-prop','',propsGrid);button.type='button';button.disabled=!!item.pending;button.title=item.name+' · '+(item.pending?'적용 중':item.enabled?'켜짐 · 클릭하여 끄기':'꺼짐 · 클릭하여 켜기');button.setAttribute('aria-label',button.title);button.setAttribute('aria-pressed',item.enabled?'true':'false');button.setAttribute('aria-busy',item.pending?'true':'false');
+        var button=element('button','tlki-prop','',propsGrid);button.type='button';button.disabled=!!item.pending;button.title=item.name+' · '+(item.pending?tr('적용 중'):item.enabled?tr('켜짐 · 클릭하여 끄기'):tr('꺼짐 · 클릭하여 켜기'));button.setAttribute('aria-label',button.title);button.setAttribute('aria-pressed',item.enabled?'true':'false');button.setAttribute('aria-busy',item.pending?'true':'false');
         button.style.position='relative';button.style.width='31.33333%';button.style.margin='4px 1%';button.style.padding='12px';button.style.height='114px';button.style.borderRadius='9px';button.style.border='1px solid '+(item.enabled?'#67ce91':'#6c7781');button.style.background=item.enabled?'rgba(53,132,87,.17)':'rgba(255,255,255,.035)';button.style.opacity=item.pending?'.55':'1';
         var thumb=document.createElement('img');thumb.alt='';thumb.src=item.thumbnail||model.placeholder||'Media/Placeholder.svg';thumb.style.width='80px';thumb.style.height='80px';thumb.style.objectFit='contain';thumb.style.opacity=item.enabled?'1':'.4';thumb.addEventListener('error',function(){if(thumb.fallbackUsed)return;thumb.fallbackUsed=true;thumb.src=model.placeholder||'Media/Placeholder.svg';});button.appendChild(thumb);
         var state=document.createElement('img');state.alt='';state.setAttribute('aria-hidden','true');state.src='coui://tlk/Icons/'+(item.enabled?'PropOn':'PropOff')+'.svg';state.style.position='absolute';state.style.top='5px';state.style.right='5px';state.style.width='20px';state.style.height='20px';button.appendChild(state);
         button.addEventListener('click',function(e){e.stopPropagation();if(button.disabled)return;button.disabled=true;button.setAttribute('aria-busy','true');send('prop:'+item.key+':'+(item.enabled?'0':'1'));});
       });
-      if(!(model.props||[]).length)element('div','tlki-empty','이 에셋에 설정된 기타 요소가 없습니다.',propsPanel);
-      element('div','tlki-note','미리 설정된 요소만 켜고 끌 수 있습니다. 초록색은 켜짐, 빈 회색은 꺼짐입니다.',propsPanel);
+      if(!(model.props||[]).length)element('div','tlki-empty',tr('이 에셋에 설정된 기타 요소가 없습니다.'),propsPanel);
+      element('div','tlki-note',tr('미리 설정된 요소만 켜고 끌 수 있습니다. 초록색은 켜짐, 빈 회색은 꺼짐입니다.'),propsPanel);
       selectTab(model.propsTab?2:model.signTab?1:previous?activeTab:0);
-      var note = element('div', 'tlki-note', '', panel); note.appendChild(icon('info','#939499',14)); element('span', '', '도시 저장 시 개별 설정도 저장됩니다. 맞은편 추가는 안전한 배치 위치가 있을 때 적용됩니다.', note);
+      var note = element('div', 'tlki-note', '', panel); note.appendChild(icon('info','#939499',14)); element('span', '', tr('도시 저장 시 개별 설정도 저장됩니다. 맞은편 추가는 안전한 배치 위치가 있을 때 적용됩니다.'), note);
       document.body.appendChild(panel);
       if(previous){list.scrollTop=previous.list;panel.scrollTop=previous.panel;}else if(selectedRow){list.scrollTop=Math.max(0,selectedRow.parentNode.offsetTop-list.offsetTop-4);}
       if (window.getComputedStyle) { engine.trigger('tlkIndividual.diagnostic', 'font=' + window.getComputedStyle(panel).fontFamily + '; locale=' + document.documentElement.className + '; assets=' + assets.length); }

@@ -79,15 +79,15 @@ propButtons[1].events.click({stopPropagation(){}});assert(calls.some(c=>c[1]==='
 const callCount=calls.length;propButtons[0].events.click({stopPropagation(){}});propButtons[2].events.click({stopPropagation(){}});assert.equal(calls.length,callCount);
 window.tlkIndividual.show({title:'props',assets:names,props:[]});assert.equal(all(document.body).filter(e=>e.className&&e.className.split(' ').includes('tlki-tab'))[2].attrs['aria-selected'],'true');assert(all(document.body).some(e=>e.textContent==='이 에셋에 설정된 기타 요소가 없습니다.'));
 console.log('PASS: left grip, tab order/persistence, thumbnail-only toggles, green/empty icons, on/off commands and pending double-click guard.');
-assert(!all(document.body).some(e=>e.attrs.role==='slider'));
+assert.equal(all(document.body).filter(e=>e.attrs.role==='slider').length,3);
 window.tlkIndividual.show({title:'far',assets:names,far:true,farRotation:12,farOffset:1.5});
 const controls=all(document.body).filter(e=>e.attrs.role==='slider');assert.equal(controls.length,3);assert.equal(controls[0].attrs['aria-valuenow'],'1.5');assert.equal(controls[2].attrs['aria-valuenow'],'12');assert(!all(document.body).some(e=>e.tag==='input'));
 const evt={key:'ArrowRight',preventDefault(){},stopPropagation(){}};controls[0].events.keydown(evt);assert(calls.some(c=>c[1]==='offset:1.6'));controls[2].events.keydown(evt);assert(calls.some(c=>c[1]==='rotation:13'));
-controls[2].events.keydown({key:'End',preventDefault(){},stopPropagation(){}});assert(calls.some(c=>c[1]==='rotation:45'));
+controls[2].events.keydown({key:'End',preventDefault(){},stopPropagation(){}});assert(calls.some(c=>c[1]==='rotation:90'));
 const resets=all(document.body).filter(e=>e.className==='tlki-control-reset');resets[2].events.click({stopPropagation(){}});assert(calls.some(c=>c[1]==='rotation:0'));
 const beforeMouse=calls.length;controls[0].getBoundingClientRect=()=>({left:10,width:200});controls[0].events.mousedown({button:0,clientX:110,preventDefault(){},stopPropagation(){}});assert.equal(calls.length,beforeMouse);assert.equal(controls[0].attrs['aria-valuenow'],'0.0');
 for(const name of ['Move','Rotate','Reset','Minus','Plus'])assert(fs.readFileSync('package/Icons/'+name+'.svg','utf8').includes('<svg'));
-window.tlkIndividual.show({title:'near',assets:names,far:false});assert(!all(document.body).some(e=>e.attrs.role==='slider'));
+window.tlkIndividual.show({title:'near',assets:names,far:false});assert.equal(all(document.body).filter(e=>e.attrs.role==='slider').length,3);
 console.log('PASS: custom sliders, no native input, keyboard bounds, independent commands, drag preview, reset and SVG assets.');controls[1].events.keydown({key:'ArrowRight',preventDefault(){},stopPropagation(){}});assert(calls.some(c=>c[1]==='lateral:0.1'));
 const filterNames=['CSKR3w2lLeftTrafficLightCar01','CSKR4w1lTrafficLightCarLeft01','CSKR4w2lTrafficLightCarCrosswalk01'];
 window.tlkIndividual.show({title:'filters',assets:filterNames});
@@ -106,3 +106,26 @@ const roadNames=['CSKRRoadNameSignBoth','CSKRRoadNameSignLeft','CSKRRoadNameSign
 window.tlkIndividual.show({title:'road names',assets:names,propsTab:true,roadNames:roadNames.map(name=>({name,thumbnail:'test.svg'})),roadName:roadNames[1],roadNameOriginal:false});
 const roadButtons=all(document.body).filter(e=>e.tag==='button'&&roadNames.includes(e.title));assert.equal(roadButtons.length,3);assert.equal(roadButtons[1].attrs['aria-checked'],'true');assert.equal(roadButtons[0].attrs['aria-checked'],'false');roadButtons[2].events.click({stopPropagation(){}});assert(calls.some(c=>c[1]==='roadname:CSKRRoadNameSignRight'));actionNamed('원래 구성으로 되돌리기').events.click({stopPropagation(){}});assert(calls.some(c=>c[1]==='roadname:'));
 window.tlkIndividual.show({title:'no mount',assets:names,propsTab:true,roadNames:[]});assert(!actionNamed('원래 구성으로 되돌리기'));console.log('PASS: three road-name variants, active selection, swap/reset commands and absent mount.');
+
+window.tlkIndividual.show({title:'near placement',far:false,assets:names,farOffset:2,farLateral:-1,farRotation:-12});
+const nearControls=all(document.body).filter(e=>e.attrs.role==='slider');
+assert.deepEqual(nearControls.map(e=>e.attrs['aria-valuenow']),['2.0','-1.0','-12']);
+nearControls[1].events.keydown({key:'Home',preventDefault(){},stopPropagation(){}});
+assert(calls.some(c=>c[1]==='lateral:-3.0'));
+function addAction(){return all(document.body).find(e=>e.className==='tlki-action'&&all(e).some(n=>['맞은편 신호등 추가 요청','위치 확인 중…','불가능한 위치'].includes(n.textContent)));}
+window.tlkIndividual.show({far:false,assets:names,farAddPending:true});assert.equal(addAction().disabled,true);assert(all(addAction()).some(e=>e.textContent==='위치 확인 중…'));
+window.tlkIndividual.show({far:false,assets:names,farAddFailed:true});assert.equal(addAction().disabled,true);assert(all(addAction()).some(e=>e.textContent==='불가능한 위치'));
+window.tlkIndividual.show({far:false,assets:names});assert.equal(addAction().disabled,false);assert(all(addAction()).some(e=>e.textContent==='맞은편 신호등 추가 요청'));
+console.log('PASS: near placement values/commands and far request pending/failure/restored button states.');
+const ko=JSON.parse(fs.readFileSync('package/lang/ko-KR.json','utf8')),en=JSON.parse(fs.readFileSync('package/lang/en-US.json','utf8'));
+assert.deepEqual(Object.keys(ko),Object.keys(en));
+const texts=Object.fromEntries(Object.keys(ko).map(k=>[ko[k],en[k]]));
+window.tlkIndividual.show({title:'Edit individual signal',texts,assets:names,far:false});
+assert(all(document.body).some(e=>e.textContent==='Signals'));
+assert(all(document.body).some(e=>e.textContent==='Add opposite signal'));
+assert(!all(document.body).some(e=>typeof e.textContent==='string'&&/[가-힣]/.test(e.textContent)));
+actionNamed('Add opposite signal').events.click({stopPropagation(){}});assert(calls.some(c=>c[1]==='add'));
+texts['신호등']='Community translation';window.tlkIndividual.show({texts,assets:names});assert(all(document.body).some(e=>e.textContent==='Community translation'));
+console.log('PASS: English text coverage, stable commands, community translation override, matching locale keys.');
+
+window.tlkIndividual.show({far:false,assets:names});actionNamed('커서로 복제 신호등 배치 (60m)').events.click({stopPropagation(){}});assert(calls.some(c=>c[1]==='manual'));

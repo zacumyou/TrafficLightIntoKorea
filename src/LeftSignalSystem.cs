@@ -23,9 +23,9 @@ public partial class LeftSignalSystem:GameSystemBase {
  internal bool IsHiddenTarget(Entity e)=>_active&&_owned.Contains(e);
  internal void Reset(){foreach(var e in _owned)Show(e);_owned.Clear();_tracked.Clear();_repairCursor=0;_queue.Clear();_head=0;_queued.Clear();_active=false;Examined=0;HiddenCount=0;}
  private void Mark(Entity e){if(!EntityManager.HasComponent<BatchesUpdated>(e))EntityManager.AddComponent<BatchesUpdated>(e);World.GetExistingSystemManaged<TrafficSignSystem>()?.SyncParent(e);}
- private void Show(Entity e){if(EntityManager.Exists(e)&&EntityManager.HasComponent<Hidden>(e)){EntityManager.RemoveComponent<Hidden>(e);Mark(e);}}
+ private void Show(Entity e){if(EntityManager.Exists(e)&&PersistentSignalVisibility.HiddenOrOwned(EntityManager,e)){PersistentSignalVisibility.Show(EntityManager,e);Mark(e);}}
  private void Enqueue(Entity e){if(e!=Entity.Null&&_queued.Add(e))_queue.Add(e);}
- protected override void OnUpdate(){
+ protected override void OnUpdate(){using(RuntimeDiagnostics.Measure("LeftSignalSystem.OnUpdate")){
  bool enabled=_ready&&Mod.Settings!=null&&Mod.Settings.Enabled&&Mod.Settings.HideLeftReplacedLights&&!World.GetOrCreateSystemManaged<Game.City.CityConfigurationSystem>().leftHandTraffic;
  if(!enabled){if(_active)Reset();return;}
  _active=true;
@@ -33,7 +33,7 @@ public partial class LeftSignalSystem:GameSystemBase {
  for(int i=0;i<16&&_head<_queue.Count;i++){var owner=_queue[_head++];_queued.Remove(owner);Evaluate(owner);}if(_head==_queue.Count){_queue.Clear();_head=0;}
  RepairHidden();
 
- }
+ }}
  // Tools can clear Hidden without adding Updated to the original signal.
  // Inspect only our tracked targets, at most 64 each frame; never scan the city here.
  private void RepairHidden(){
@@ -49,7 +49,7 @@ public partial class LeftSignalSystem:GameSystemBase {
   // Recheck the current pair before reinstating a flag that another tool cleared.
   var overrides=World.GetExistingSystemManaged<OverrideSystem>();
   bool valid=EntityManager.HasComponent<PrefabRef>(e)&&EntityManager.HasComponent<Transform>(e)&&!EntityManager.HasComponent<Temp>(e)&&IsReplaced(e)&&HasRightReplacement(e);
-  if(valid){EntityManager.AddComponent<Hidden>(e);Mark(e);}else _owned.Remove(e);
+  if(valid){PersistentSignalVisibility.Hide(EntityManager,e);Mark(e);}else _owned.Remove(e);
  }
  HiddenCount=_owned.Count;
  }
@@ -60,7 +60,7 @@ public partial class LeftSignalSystem:GameSystemBase {
  foreach(var e in children){if(!EntityManager.Exists(e))continue;
  if(EntityManager.HasComponent<Game.Objects.TrafficLight>(e))Examined++;
  bool hide=!EntityManager.HasComponent<Deleted>(e)&&!EntityManager.HasComponent<Temp>(e)&&EntityManager.HasComponent<Transform>(e)&&EntityManager.HasComponent<PrefabRef>(e)&&EntityManager.HasComponent<Game.Objects.TrafficLight>(e)&&IsReplaced(e)&&HasRightReplacement(e);
- if(hide){if(_owned.Add(e))_tracked.Add(e);if(!EntityManager.HasComponent<Hidden>(e)){EntityManager.AddComponent<Hidden>(e);Mark(e);}}
+ if(hide){if(_owned.Add(e))_tracked.Add(e);if(!EntityManager.HasComponent<Hidden>(e)){PersistentSignalVisibility.Hide(EntityManager,e);Mark(e);}}
  else if(_owned.Remove(e))Show(e);
  HiddenCount=_owned.Count;
  }
