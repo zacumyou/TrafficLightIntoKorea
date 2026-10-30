@@ -2,7 +2,7 @@ using System;using System.IO;using System.Text;using Game.Common;using Game.Pref
 namespace TrafficLightIntoKorea {
 public partial class LeftSignalSystem {
  internal string WriteDebugReport(Entity selected,RaycastHit hit){
- var s=new StringBuilder();s.AppendLine("TRAFFIC LIGHT INTO KOREA 2.3.28 / click snapshot");s.AppendLine("UTC="+DateTime.UtcNow.ToString("O"));
+ var s=new StringBuilder();s.AppendLine("TRAFFIC LIGHT INTO KOREA "+typeof(Mod).Assembly.GetName().Version.ToString(3)+" / click snapshot");s.AppendLine("UTC="+DateTime.UtcNow.ToString("O"));
  s.AppendLine("RightHandTraffic="+!World.GetOrCreateSystemManaged<Game.City.CityConfigurationSystem>().leftHandTraffic);
  s.AppendLine("HideOption="+Mod.Settings.HideLeftReplacedLights+" Ready="+_ready+" Active="+_active+" Queued="+(_queue.Count-_head));
  s.AppendLine("RayHit="+hit.m_HitEntity+" HitPosition="+hit.m_HitPosition);Describe(s,selected,"SELECTED");

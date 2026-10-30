@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using Newtonsoft.Json;
 using TrafficLightIntoKorea;
@@ -11,7 +11,7 @@ static class Program {
  var restored=JsonConvert.DeserializeObject<SignalSidecar>(JsonConvert.SerializeObject(old)).signals[0];
  Check(restored.nearOffset==-2&&restored.nearLateral==1.5f&&restored.nearRotation==-20&&restored.farOffset==2&&restored.farRotation==30&&restored.nearProps[0]=="test","Independent near/far roundtrip");
  Check(FarOffsetRules.Clamp(99)==3&&FarOffsetRules.Clamp(-99)==-3&&FarOffsetRules.Clamp(float.NaN)==0&&FarOffsetRules.Rotation(99)==45&&FarOffsetRules.Rotation(float.PositiveInfinity)==0,"Bounds and corrupt values");
- var suspended=JsonConvert.DeserializeObject<SignalSidecar>(JsonConvert.SerializeObject(new SignalSidecar{nodes=Array.Empty<string>(),retainedNodes=new[]{"N2:1,2,3"},signals=new[]{o}})); Check(suspended.nodes.Length==0&&suspended.retainedNodes.Length==1&&suspended.signals[0].nearRotation==-20&&suspended.signals[0].farOffset==2,"Default appearance preserves inactive junction history and edits"); StorageTests();Check(FarOffsetRules.FarRotation(120)==90&&FarOffsetRules.FarRotation(-120)==-90&&FarOffsetRules.Rotation(90)==45,"Independent rotation limits");Check(FarOffsetRules.CanPlace(60,0,0)&&!FarOffsetRules.CanPlace(60.01f,0,0)&&!FarOffsetRules.CanPlace(45,0,45)&&!FarOffsetRules.CanPlace(0,13,0)&&!FarOffsetRules.CanPlace(float.NaN,0,0),"Manual placement boundary");o.manualPosition=new[]{12f,3f,40f};o.manualRotation=new[]{0f,0f,0f,1f};o.farRotation=90;var manual=JsonConvert.DeserializeObject<SignalChoice>(JsonConvert.SerializeObject(o));Check(manual.manualPosition[2]==40&&manual.manualRotation[3]==1&&manual.farRotation==90,"Manual placement roundtrip");
+ var suspended=JsonConvert.DeserializeObject<SignalSidecar>(JsonConvert.SerializeObject(new SignalSidecar{nodes=Array.Empty<string>(),retainedNodes=new[]{"N2:1,2,3"},signals=new[]{o}})); Check(suspended.nodes.Length==0&&suspended.retainedNodes.Length==1&&suspended.signals[0].nearRotation==-20&&suspended.signals[0].farOffset==2,"Default appearance preserves inactive junction history and edits"); StorageTests();Check(FarOffsetRules.FarRotation(120)==90&&FarOffsetRules.FarRotation(-120)==-90&&FarOffsetRules.Rotation(90)==45,"Independent rotation limits");Check(FarOffsetRules.CanPlace(100,0,0)&&!FarOffsetRules.CanPlace(100.01f,0,0)&&!FarOffsetRules.CanPlace(71,0,71)&&!FarOffsetRules.CanPlace(0,13,0)&&!FarOffsetRules.CanPlace(float.NaN,0,0),"Manual placement boundary");o.manualPosition=new[]{12f,3f,40f};o.manualRotation=new[]{0f,0f,0f,1f};o.farRotation=90;var manual=JsonConvert.DeserializeObject<SignalChoice>(JsonConvert.SerializeObject(o));Check(manual.manualPosition[2]==40&&manual.manualRotation[3]==1&&manual.farRotation==90,"Manual placement roundtrip");
  Console.WriteLine("PASS: legacy save defaults, independent near/far JSON roundtrip, bounds and non-finite values.");
  }
  static void DormantTests(){

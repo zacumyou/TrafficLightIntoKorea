@@ -1,7 +1,7 @@
 using Game.Common;using Game.Objects;using Game.Prefabs;using Game.Tools;using Unity.Entities;using Unity.Jobs;using Unity.Mathematics;
 namespace TrafficLightIntoKorea {
 internal static class ManualSignalPlacement {
- internal const float Radius=60f;
+ internal const float Radius=FarOffsetRules.Radius;
  internal static bool Valid(float3 origin,float3 point)=>FarOffsetRules.CanPlace(point.x-origin.x,point.y-origin.y,point.z-origin.z);
  internal static float3 Bound(float3 origin,float3 point){var delta=point.xz-origin.xz;float distance=math.length(delta);if(distance>Radius)point.xz=origin.xz+delta*(Radius/distance);return point;}
 }
@@ -34,7 +34,7 @@ public partial class IndividualSignalTool {
   if(cancelAction.WasPressedThisFrame()||!EntityManager.Exists(_placementLink.Source)||EntityManager.HasComponent<Deleted>(_placementLink.Source)||!KoreanJunctionSystem.Selected(EntityManager,_placementLink.Owner)){CancelPlacement();return deps;}
   var origin=EntityManager.GetComponentData<Transform>(_placementLink.Source).m_Position;bool hitFound=GetRaycastResult(out Entity owner,out RaycastHit hit);var point=hit.m_HitPosition;bool valid=hitFound&&ManualSignalPlacement.Valid(origin,point);
   var overlay=World.GetOrCreateSystemManaged<Game.Rendering.OverlayRenderSystem>();var buffer=overlay.GetBuffer(out var dependency);dependency.Complete();var color=valid?new UnityEngine.Color(.2f,.75f,1f,.5f):new UnityEngine.Color(1f,.3f,.25f,.5f);
-  for(int i=0;i<96;i++){float a=i*math.PI*2/96,b=(i+.55f)*math.PI*2/96;var p=origin+new float3(math.cos(a)*60,.15f,math.sin(a)*60);var q=origin+new float3(math.cos(b)*60,.15f,math.sin(b)*60);buffer.DrawLine(color,new Colossal.Mathematics.Line3.Segment(p,q),.15f);}overlay.AddBufferWriter(default);
+  for(int i=0;i<96;i++){float a=i*math.PI*2/96,b=(i+.55f)*math.PI*2/96;var p=origin+new float3(math.cos(a)*ManualSignalPlacement.Radius,.15f,math.sin(a)*ManualSignalPlacement.Radius);var q=origin+new float3(math.cos(b)*ManualSignalPlacement.Radius,.15f,math.sin(b)*ManualSignalPlacement.Radius);buffer.DrawLine(color,new Colossal.Mathematics.Line3.Segment(p,q),.15f);}overlay.AddBufferWriter(default);
   World.GetExistingSystemManaged<ManualSignalPreviewSystem>()?.Move(point,hitFound);
   if(valid&&applyAction.WasPressedThisFrame()&&World.GetExistingSystemManaged<IndividualSignalData>().PlaceManual(_placementLink.Owner,_placementLink.Source,point,_placementRotation,_placementAsset))CancelPlacement();return deps;
  }

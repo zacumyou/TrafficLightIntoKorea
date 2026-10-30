@@ -4,6 +4,15 @@ static class Program {
  static int count;
  static void Check(bool condition,string message){if(!condition)throw new Exception(message);count++;}
  static void Main(){
+ foreach(int state in new[]{0,1,2,4}){
+  Check(ThreeLampRules.RoundState(0,state,false,true)==state,"Manual round head on left-only approach follows left "+state);
+  Check(ThreeLampRules.RoundState(state,4,true,true)==state,"Through approach does not borrow left green "+state);
+ }
+ Check(ThreeLampRules.RoundState(0,4,false,false)==0,"Missing movements do not invent green");
+ foreach(var name in new[]{"CSKR3w1lLeftTrafficLightCarCrosswalk01","CSKR3w1lLeftTrafficLightCar01","CSKR3w2lLeftTrafficLightCar01","CSKR3w2lLeftTrafficLightCarCrosswalk01","CSKR3w2lTrafficLightCar01","CSKR3w2lTrafficLightCarCrosswalk01","CSKR3w1lSTrafficLightCar01","CSKR4w1lTrafficLightCarLeft01"})
+  Check(IndividualAssetRules.KoreanVehicle(name),"Locally loaded Korean vehicle available: "+name);
+ foreach(var name in new[]{"NA_TrafficLightCar01","EU_TrafficLightCar01","CSKRTLOnlyPed","CSKRTrafficLightSignBanLeft","TLK_RuntimeApproach_1_1_0_","",null})
+  Check(!IndividualAssetRules.KoreanVehicle(name),"Unrelated asset excluded: "+name);
  Check(ThreeLampRules.TurnOnly(3,2,6),"T stem left and right");
  Check(ThreeLampRules.TurnOnly(3,1,2),"Left only");
  Check(ThreeLampRules.TurnOnly(3,1,4),"Right only");

@@ -1,20 +1,22 @@
 using Game;using Game.Common;using Game.Objects;using Game.Rendering;using Game.Tools;using Unity.Collections;using Unity.Entities;using Unity.Mathematics;
 namespace TrafficLightIntoKorea {
 internal struct FarVisibilityRetry:IComponentData {internal float Next;internal int Attempts;}
-// Our transient far-side displays receive persistent override protection without
+// Audit both approach and far displays; intentional approach hiding remains intact.
+// Far displays also receive persistent override protection without
 // depending on Anarchy or modifying native objects/intentional near-side hiding.
 public partial class FarVisibilitySystem:GameSystemBase {
- private EntityQuery _blocked,_far;private bool _ready;private float _next;private int _cursor;
+ private EntityQuery _blocked,_displays;private bool _ready;private float _next;private int _cursor;
  protected override void OnCreate(){base.OnCreate();
-  _far=GetEntityQuery(ComponentType.ReadOnly<FarSignal>(),ComponentType.ReadOnly<KoreanSignalClone>(),ComponentType.ReadOnly<IndividualSignalLink>(),ComponentType.ReadOnly<Transform>(),ComponentType.Exclude<Deleted>(),ComponentType.Exclude<KoreanRetired>(),ComponentType.Exclude<Temp>());
+  _displays=GetEntityQuery(ComponentType.ReadOnly<KoreanSignalClone>(),ComponentType.ReadOnly<IndividualSignalLink>(),ComponentType.ReadOnly<Transform>(),ComponentType.Exclude<Deleted>(),ComponentType.Exclude<KoreanRetired>(),ComponentType.Exclude<Temp>());
   _blocked=GetEntityQuery(new EntityQueryDesc{All=new[]{ComponentType.ReadOnly<FarSignal>(),ComponentType.ReadOnly<KoreanSignalClone>(),ComponentType.ReadOnly<IndividualSignalLink>()},Any=new[]{ComponentType.ReadOnly<Overridden>(),ComponentType.ReadOnly<Hidden>()},None=new[]{ComponentType.Exclude<Deleted>(),ComponentType.Exclude<KoreanRetired>(),ComponentType.Exclude<Temp>()}});
  }
  protected override void OnGamePreload(Colossal.Serialization.Entities.Purpose p,GameMode mode){_ready=false;_next=0;_cursor=0;base.OnGamePreload(p,mode);}
  protected override void OnGameLoadingComplete(Colossal.Serialization.Entities.Purpose p,GameMode mode){base.OnGameLoadingComplete(p,mode);_ready=mode==GameMode.Game;}
  private bool Active(Entity e){var link=EntityManager.GetComponentData<IndividualSignalLink>(e);
-  if(!link.Far||!EntityManager.Exists(link.Source)||EntityManager.HasComponent<Deleted>(link.Source)||EntityManager.HasComponent<Temp>(link.Source)||!EntityManager.Exists(link.Owner)||EntityManager.HasComponent<Deleted>(link.Owner)||EntityManager.HasComponent<Temp>(link.Owner)||!KoreanJunctionSystem.Selected(EntityManager,link.Owner))return false;
+  if(!EntityManager.Exists(link.Source)||EntityManager.HasComponent<Deleted>(link.Source)||EntityManager.HasComponent<Temp>(link.Source)||!EntityManager.Exists(link.Owner)||EntityManager.HasComponent<Deleted>(link.Owner)||EntityManager.HasComponent<Temp>(link.Owner)||!KoreanJunctionSystem.VisualSelected(EntityManager,link.Owner))return false;
+  if(!link.Far)return RenderRecoveryRules.AuditDisplay(false,EntityManager.HasComponent<Hidden>(e),false,null);
   int? mode=World.GetExistingSystemManaged<IndividualSignalData>()?.Get(link.Owner,link.Source)?.farMode;
-  return RenderRecoveryRules.ProtectFar(Mod.Settings.AddFarSignals,mode);
+  return RenderRecoveryRules.AuditDisplay(true,EntityManager.HasComponent<Hidden>(e),Mod.Settings.AddFarSignals,mode);
  }
  private void Refresh(Entity e){if(!EntityManager.HasComponent<Updated>(e))EntityManager.AddComponent<Updated>(e);if(!EntityManager.HasComponent<BatchesUpdated>(e))EntityManager.AddComponent<BatchesUpdated>(e);}
  protected override void OnUpdate(){using(RuntimeDiagnostics.Measure("FarVisibilitySystem.OnUpdate")){if(!_ready||Mod.Settings==null||!Mod.Settings.Enabled)return;
@@ -27,9 +29,9 @@ public partial class FarVisibilitySystem:GameSystemBase {
   var camera=World.GetExistingSystemManaged<CameraUpdateSystem>();if(camera==null||!camera.TryGetLODParameters(out var parameters)||camera.activeViewer==null)return;
   var batches=World.GetExistingSystemManaged<BatchDataSystem>();var rendering=World.GetExistingSystemManaged<RenderingSystem>();if(batches==null||rendering==null)return;
   var lod=RenderingUtils.CalculateLodParameters(batches.GetLevelOfDetail(rendering.frameLod,camera.activeCameraController),parameters);
-  using(var entities=_far.ToEntityArray(Allocator.Temp)){
+  using(var entities=_displays.ToEntityArray(Allocator.Temp)){
    if(entities.Length==0){_cursor=0;return;}
-   int count=math.min(64,entities.Length);
+   int count=math.min(64,entities.Length),requested=0;
    for(int i=0;i<count;i++){
     if(_cursor>=entities.Length)_cursor=0;var e=entities[_cursor++];if(!Active(e))continue;
     bool needsRefresh=false;
@@ -43,7 +45,7 @@ public partial class FarVisibilitySystem:GameSystemBase {
     if(now<retry.Next)continue;
     retry.Next=now+RenderRecoveryRules.RetryDelay(retry.Attempts);retry.Attempts=math.min(retry.Attempts+1,3);
     if(EntityManager.HasComponent<FarVisibilityRetry>(e))EntityManager.SetComponentData(e,retry);else EntityManager.AddComponentData(e,retry);
-    RuntimeDiagnostics.Count("far.cullingRepair");Refresh(e);RuntimeDiagnostics.Event("Far culled-display recovery requested "+e+" stage="+retry.Attempts);
+    requested++;RuntimeDiagnostics.Count("display.cullingRepair");Refresh(e);RuntimeDiagnostics.Event("Signal culled-display recovery requested "+e+" far="+EntityManager.GetComponentData<IndividualSignalLink>(e).Far+" stage="+retry.Attempts);if(requested>=4)break;
    }
   }
  }}

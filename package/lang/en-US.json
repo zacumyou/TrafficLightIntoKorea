@@ -1,4 +1,4 @@
-{
+﻿{
   "TLK.Individual.Text001": " Reset",
   "TLK.Individual.Text002": "Decrease one step",
   "TLK.Individual.Text003": "Increase one step",
@@ -69,7 +69,7 @@
   "TLK.Individual.Text068": "Off · click to turn on",
   "TLK.Individual.Text069": "This asset has no configured accessories.",
   "TLK.Individual.Text070": "Only configured accessories can be toggled. Green means on; empty gray means off.",
-  "TLK.Individual.Text071": "Individual settings are saved with city saves. Opposite signals require a valid placement location.",
+  "TLK.Individual.Text071": "Opposite signals require a valid placement location.",
   "TLK.Individual.Text072": "Edit opposite signal",
   "TLK.Individual.Text073": "Edit individual signal",
   "TLK.Individual.Text074": "Road-name sign asset unavailable.",
@@ -82,5 +82,20 @@
   "TLK.Individual.Text081": "Only configured accessories can be changed.",
   "TLK.Individual.Text082": "Sign mount or asset unavailable.",
   "TLK.Individual.Text083": "Cannot identify the target or use this asset.",
-  "TLK.Individual.ManualPlacement": "Place linked signal with cursor (60 m)"
+  "TLK.Individual.ManualPlacement": "Place linked signal with cursor",
+  "TLK.Diagnostics.Label": "In-game TLIK detailed logging",
+  "TLK.Diagnostics.Description": "Records TLIK timings, signal creation/recovery and TLIK panel commands after the save finishes loading. No menu, loading or unrelated button capture. Persists across restarts. Disable after investigation.",
+  "TLK.Diagnostics.Status": "Detailed log session",
+  "TLK.Individual.Text084": "Place copy",
+  "TLK.Individual.Text085": "Auto asset",
+  "TLK.Individual.Text086": "Show original",
+  "TLK.Individual.Text087": "Delete",
+  "TLK.Individual.Text088": "Hide original",
+  "TLK.Individual.Text089": "Add opposite",
+  "TLK.Individual.Text090": "Auto opposite",
+  "TLK.Individual.Text091": "Icons only / Show labels",
+  "TLK.Individual.Text092": "Help",
+  "TLK.Individual.Text093": "Choose a signal and use the action icons below. Adjust its position under Placement.",
+  "TLK.Tool.Creating": "Creating traffic lights…",
+  "TLK.Tool.CreateFailed": "Could not create traffic lights at this junction."
 }

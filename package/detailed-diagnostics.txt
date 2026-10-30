@@ -1,0 +1,15 @@
+TLIK 2.3.61 인게임 상세 진단
+
+문제 해결 > 인게임 TLIK 상세 로그 수집 ON.
+메뉴와 세이브 로딩 중에는 대기하고, 로드 완료 후 Game 모드에서만 시작한다. 다른 세이브 로드 시 이전 세션을 끝내고 완료 후 새 세션을 시작한다. OFF로 중지한다. 옵션 값은 다음 실행에도 유지된다.
+
+TLIK 내부 구간별 시간·집계, 생성/숨김/복구/재시도 이벤트, TLIK 패널 열기/닫기/명령/갱신, TLIK 도구 진입/종료, 프레임 간격과 GC를 기록한다. 렌더 경계의 지연은 전역 프레임 문맥일 뿐 TLIK가 원인이라는 의미는 아니다.
+
+전체 UI 버튼, DOM 클릭/hover/드래그 감시, 공통 Cohtml/JSON 바인딩 훅, 전체 ECS 및 GameManager 로드 훅을 제거했다. Harmony를 로드하거나 패치하지 않는다. 옛 패키지에서 남은 Harmony DLL은 사용하지 않는다.
+
+경로: %USERPROFILE%\AppData\LocalLow\Colossal Order\Cities Skylines II\ModsData\TrafficLightIntoKorea\Diagnostics
+분석 파일: 같은 detail-세션-번호.jsonl 전부와 detail-status.json.
+JSON 변환과 파일 기록은 백그라운드에서 수행한다. 정상 프레임은 FRAME_SUMMARY에 초당 평균·최대 간격 및 GC를 요약하며, 100ms 이상 프레임은 FRAME_SLOW로 개별 기록한다. Individual.Panel.Build는 패널 데이터 구성과 스크립트 전달 구간이다. 64MiB 파일 분할, 세션당 512MiB, 대기열 20,000행 제한. 누락·오류·제한 도달은 상태 파일에 남긴다.
+관리형 내부 구간은 서로 중첩될 수 있어 합산하지 않는다. GPU·Burst 개별 비용은 측정하지 않는다. 계측 자체에도 부하가 있으므로 조사 후 끈다.
+
+2.3.57에서 입력이 막힌 상태라면 게임을 종료한 뒤 2.3.58로 다시 실행해야 기존 전역 훅이 남지 않는다.

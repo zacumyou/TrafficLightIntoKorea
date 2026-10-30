@@ -38,6 +38,18 @@ class Program {
   pending=new HashSet<string>{"N2:999","legacy-missing"};keys=legacy=applied=0;
   scan=new IncrementalNodeRestore<int>(Enumerable.Range(0,1000).ToArray(),pending,n=>{keys++;return "N2:"+n;},n=>{legacy++;return "legacy-"+n;},(n,k,l)=>{applied++;return true;});
   while(keys<1000)scan.Step(1,1000);scan.Step(32,1000);Check(applied==1&&legacy==1&&pending.Contains("legacy-missing"),"modern junction at end restored before city-wide legacy matches");
+  var order=new List<int>();int priorities=0;
+  pending=new HashSet<string>{"N2:1","N2:2","N2:3","N2:4"};
+  scan=new IncrementalNodeRestore<int>(new[]{1,2,3,4},pending,n=>"N2:"+n,n=>null,(n,k,l)=>{order.Add(n);return true;},n=>{priorities++;return n==1?2:n==2?1:0;});
+  Finish(scan);Check(order.SequenceEqual(new[]{3,4,2,1})&&priorities==4,"near bands first, stable ties, priority sampled once");
+  order.Clear();pending=new HashSet<string>{"legacy-1","legacy-2","N2:3"};
+  scan=new IncrementalNodeRestore<int>(new[]{1,2,3},pending,n=>"N2:"+n,n=>"legacy-"+n,(n,k,l)=>{order.Add(n);return true;},n=>n==2?0:2);
+  Finish(scan);Check(order.SequenceEqual(new[]{3,2,1}),"known modern before legacy; legacy near first");
+  applied=0;pending=new HashSet<string>{"N2:dup"};
+  scan=new IncrementalNodeRestore<int>(new[]{1,2},pending,n=>"N2:dup",n=>null,(n,k,l)=>{applied++;return true;},n=>n==1?0:2);
+  Finish(scan);Check(applied==0&&pending.Count==1,"distant duplicate prevents near misapplication");
+  Check(RestoreDistancePriority.Band(0)==0&&RestoreDistancePriority.Band(360000)==0&&RestoreDistancePriority.Band(360001)==1&&RestoreDistancePriority.Band(3240000)==1&&RestoreDistancePriority.Band(3240001)==2,"distance boundaries");
+  Check(RestoreDistancePriority.Band(double.NaN)==2&&RestoreDistancePriority.Band(double.PositiveInfinity)==2&&RestoreDistancePriority.Band(-1)==2,"invalid distance is last");
   Console.WriteLine($"PASS: {checks} restore checks using production scanner. Not an in-game frame benchmark.");
  }
 }

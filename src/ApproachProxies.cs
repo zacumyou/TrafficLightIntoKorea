@@ -29,7 +29,7 @@ internal sealed class ApproachProxies {
   }
   var proxy=ScriptableObject.CreateInstance<StaticObjectPrefab>();proxy.name=Prefix+source.Index+"_"+source.Version+"_"+_generation+"_"+_suffix;proxy.m_Meshes=meshes.ToArray();proxy.m_Circular=original.m_Circular;
   proxy.AddComponentFrom(traffic);
-  if(system.AddPrefab(proxy)){_prefabs.Add(source,proxy);_status[source]="registered; awaiting native initialization";}else {_status[source]="native registration rejected";Object.Destroy(proxy);}
+  if(system.AddPrefab(proxy)){RuntimeDiagnostics.Event("Proxy registered source="+source+" asset="+original.name+" meshes="+meshes.Count);_prefabs.Add(source,proxy);_status[source]="registered; awaiting native initialization";}else {_status[source]="native registration rejected";Object.Destroy(proxy);}
  }
  internal Entity SourceOf(Entity proxy,PrefabSystem system){foreach(var pair in _prefabs)if(system.TryGetEntity(pair.Value,out var e)&&e==proxy)return pair.Key;return Entity.Null;}
  internal Entity Resolve(Entity source,PrefabSystem system,EntityManager em){

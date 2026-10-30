@@ -5,6 +5,26 @@ class Program {
  static void Check(bool value,string name){count++;if(!value)throw new Exception(name);}
  static int State(bool go=false,bool yield=false,bool stop=false,bool allow=false,bool beginning=false,int native=4)=>MovementSignalState.Resolve(go,yield,stop,allow,beginning,native);
  static void Main(){
+  // A T-stem's left head must follow live permission even without phase membership.
+  foreach(ushort mask in new ushort[]{0,1,8,32768}){
+   var permissions=new MovementSignalPermissions();
+   permissions.Add(mask,true,false,false);
+   int left=State(go:permissions.Go,yield:permissions.Yield,stop:permissions.SafeStop,native:0);
+   Check(permissions.Mask==mask&&left==4,"Live Go survives phase mask "+mask);
+   Check(LeftThreeLampRules.Lamp(2,left)&&KoreanSignalTransition.Lamp(3,1,left),"Three/four lamp left arrow follows Go "+mask);
+  }
+  var mixed=new MovementSignalPermissions();
+  mixed.Add(0,true,false,false);mixed.Add(8,false,false,false);
+  Check(mixed.Mask==8&&State(go:mixed.Go)==4,"Stopped grouped lane cannot hide ungrouped Go");
+  var ungrouped=new MovementSignalPermissions();
+  ungrouped.Add(0,false,true,false);
+  Check(State(yield:ungrouped.Yield,allow:true,native:0)==4,"Ungrouped permissive yield follows option");
+  Check(State(yield:ungrouped.Yield,allow:false,native:0)==0,"Yield option remains respected");
+  Check((State(yield:ungrouped.Yield,allow:true,beginning:true,native:3)&4)==0,"Preparation yield stays non-green");
+  ungrouped=default;ungrouped.Add(0,false,false,true);
+  Check(State(stop:ungrouped.SafeStop,native:0)==2,"Ungrouped clearance remains amber");
+  ungrouped=default;ungrouped.Add(0,false,false,false);
+  Check(State(go:ungrouped.Go,yield:ungrouped.Yield,stop:ungrouped.SafeStop,native:0)==0,"No permission remains unlit");
   var t=new KoreanSignalTransition();
   Check(t.Update(3,0,60)==1,"Startup red+yellow must not become green");
   Check(State(yield:true,allow:true,beginning:true,native:3)==1,"TLM Beginning Yield is not permissive left");

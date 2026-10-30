@@ -49,7 +49,7 @@ internal static class BetterBulldozerRestore {
  private static Action<EntityManager,Entity> CreateCancel<T>() where T:unmanaged,IComponentData {
   return (em,e)=>{if(em.HasComponent<T>(e))em.RemoveComponent<T>(e);};
  }
- internal static bool CanRestore(EntityManager em,Entity node)=>em.Exists(node)&&!em.HasComponent<Deleted>(node)&&!em.HasComponent<Temp>(node)&&em.HasComponent<Game.Net.Node>(node)&&em.HasComponent<Game.Net.TrafficLights>(node)&&em.GetComponentData<Game.Net.TrafficLights>(node).m_Flags==0&&em.HasBuffer<Game.Net.ConnectedEdge>(node)&&em.GetBuffer<Game.Net.ConnectedEdge>(node,true).Length>=3;
+ internal static bool CanRestore(EntityManager em,Entity node)=>em.Exists(node)&&!em.HasComponent<Deleted>(node)&&!em.HasComponent<Temp>(node)&&em.HasComponent<Game.Net.Node>(node)&&em.HasComponent<Game.Net.TrafficLights>(node)&&em.GetComponentData<Game.Net.TrafficLights>(node).m_Flags==0&&em.HasBuffer<Game.Net.ConnectedEdge>(node)&&em.GetBuffer<Game.Net.ConnectedEdge>(node,true).Length>=2;
  internal static bool Restore(EntityManager em,Entity node){
   if(!Available||!CanRestore(em,node))return false;
   em.CompleteAllTrackedJobs();

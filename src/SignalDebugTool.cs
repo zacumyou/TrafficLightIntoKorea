@@ -19,13 +19,14 @@ public partial class SignalDebugTool:ToolBaseSystem {
  inputDeps.Complete();
  if(GetRaycastResult(out Entity owner,out RaycastHit hit)){
  var e=FindSignal(hit.m_HitEntity);if(e==Entity.Null)e=FindSignal(owner);
- bool signal=e!=Entity.Null;if(!signal){e=FindJunction(hit.m_HitEntity,hit.m_HitPosition);if(e==Entity.Null)e=FindJunction(owner,hit.m_HitPosition);}SetHover(e);
+ bool signal=e!=Entity.Null;if(!signal){e=FindJunction(hit.m_HitEntity,hit.m_HitPosition);if(e==Entity.Null)e=FindJunction(owner,hit.m_HitPosition);}SetHover(signal?e:Entity.Null);if(!signal&&e!=Entity.Null)DrawJunction(e);
  if(e!=Entity.Null&&applyAction.WasPressedThisFrame()){try{var reports=World.GetExistingSystemManaged<LeftSignalSystem>();LastReport=signal?reports.WriteDebugReport(e,hit):reports.WriteJunctionReport(e,hit);}catch(System.Exception ex){LastReport="ERROR: "+ex.Message;}}
  }else SetHover(Entity.Null);
  return inputDeps;
  }
+ private void DrawJunction(Entity node){float diameter=24f;if(EntityManager.HasComponent<Game.Net.NodeGeometry>(node)){var bounds=EntityManager.GetComponentData<Game.Net.NodeGeometry>(node).m_Bounds;float size=Unity.Mathematics.math.cmax((bounds.max-bounds.min).xz);if(Unity.Mathematics.math.isfinite(size)&&size>0)diameter=Unity.Mathematics.math.max(8f,size);}var overlay=World.GetOrCreateSystemManaged<Game.Rendering.OverlayRenderSystem>();var buffer=overlay.GetBuffer(out var deps);deps.Complete();buffer.DrawCircle(new UnityEngine.Color(1f,0.55f,0.1f,0.4f),EntityManager.GetComponentData<Game.Net.Node>(node).m_Position,diameter);overlay.AddBufferWriter(default);}
  private Entity FindSignal(Entity e){for(int i=0;i<5&&EntityManager.Exists(e);i++){if(EntityManager.HasComponent<Game.Objects.TrafficLight>(e))return e;if(!EntityManager.HasComponent<Owner>(e))break;e=EntityManager.GetComponentData<Owner>(e).m_Owner;}return Entity.Null;}
- private bool IsJunction(Entity e)=>EntityManager.Exists(e)&&!EntityManager.HasComponent<Deleted>(e)&&!EntityManager.HasComponent<Temp>(e)&&EntityManager.HasComponent<Game.Net.Node>(e)&&EntityManager.HasBuffer<Game.Net.ConnectedEdge>(e)&&EntityManager.GetBuffer<Game.Net.ConnectedEdge>(e,true).Length>=3;
+ private bool IsJunction(Entity e)=>SignalNodeTarget.Selectable(EntityManager,e);
  private Entity FindJunction(Entity e,Unity.Mathematics.float3 position){for(int i=0;i<5&&EntityManager.Exists(e);i++){if(IsJunction(e))return e;if(EntityManager.HasComponent<Game.Net.Edge>(e)){var edge=EntityManager.GetComponentData<Game.Net.Edge>(e);Entity best=Entity.Null;float distance=3600f;foreach(var node in new[]{edge.m_Start,edge.m_End})if(IsJunction(node)){float d=Unity.Mathematics.math.distancesq(EntityManager.GetComponentData<Game.Net.Node>(node).m_Position,position);if(d<distance){distance=d;best=node;}}return best;}if(!EntityManager.HasComponent<Owner>(e))break;e=EntityManager.GetComponentData<Owner>(e).m_Owner;}return Entity.Null;}
 }
 }

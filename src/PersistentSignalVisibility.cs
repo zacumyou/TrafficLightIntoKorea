@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -27,11 +27,12 @@ internal static class PersistentSignalVisibility {
 public partial class PersistentSignalVisibilitySystem:GameSystemBase {
  private SubObjectHiddenSystem _native;
  private FieldInfo _field;
- private EntityQuery _original,_filtered,_owned;
+ private EntityQuery _original,_filtered,_owned,_changedOwned;
  private bool _installed;
  private readonly List<Entity> _saving=new List<Entity>();
  protected override void OnCreate(){base.OnCreate();
   _owned=GetEntityQuery(ComponentType.ReadOnly<KoreanPersistentHidden>());
+  _changedOwned=GetEntityQuery(ComponentType.ReadOnly<KoreanPersistentHidden>(),ComponentType.ReadOnly<Updated>(),ComponentType.Exclude<Deleted>(),ComponentType.Exclude<Temp>(),ComponentType.Exclude<KoreanSignalClone>(),ComponentType.Exclude<KoreanSignVisual>());
   try{
    _native=World.GetOrCreateSystemManaged<SubObjectHiddenSystem>();
    _field=typeof(SubObjectHiddenSystem).GetField("m_HiddenQuery",BindingFlags.Instance|BindingFlags.NonPublic);
@@ -51,6 +52,20 @@ public partial class PersistentSignalVisibilitySystem:GameSystemBase {
   if(_installed){if(((EntityQuery)_field.GetValue(_native)).Equals(_filtered))_field.SetValue(_native,_original);_installed=false;}_saving.Clear();
  }
  protected override void OnDestroy(){Stop();base.OnDestroy();}
- protected override void OnUpdate(){}
+ protected override void OnUpdate(){
+  // Native upgrades may reuse/copy hidden source objects. Only retain our hide
+  // while their junction is still selected; never unhide another mod's objects.
+  using(var entities=_changedOwned.ToEntityArray(Allocator.Temp))foreach(var e in entities){
+   var owner=e;for(int depth=0;depth<8&&EntityManager.Exists(owner);depth++){
+    if(EntityManager.HasComponent<Game.Net.Node>(owner)){
+     if(!EntityManager.HasComponent<Temp>(owner)&&!KoreanJunctionSystem.VisualSelected(EntityManager,owner)){
+      PersistentSignalVisibility.Show(EntityManager,e);if(!EntityManager.HasComponent<BatchesUpdated>(e))EntityManager.AddComponent<BatchesUpdated>(e);
+      RuntimeDiagnostics.Event("Released stale native signal hide entity="+e+" node="+owner);
+     }break;
+    }
+    if(!EntityManager.HasComponent<Owner>(owner))break;owner=EntityManager.GetComponentData<Owner>(owner).m_Owner;
+   }
+  }
+ }
 }
 }

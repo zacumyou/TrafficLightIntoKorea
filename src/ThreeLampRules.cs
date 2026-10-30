@@ -6,6 +6,9 @@ internal static class ThreeLampRules {
  internal static bool TurnOnly(int roads,int validLanes,int movements)=>roads==3&&validLanes>0&&(movements&1)==0&&(movements&6)!=0;
  internal static bool StraightOnly(int movements)=>(movements&1)!=0&&(movements&2)==0;
  internal static bool PreferFour(int roads)=>roads>=4;
+ // A round three-lamp head has no arrow. With no through movement, show the
+ // available left movement instead of reading an empty straight-lane set.
+ internal static int RoundState(int straight,int left,bool hasStraight,bool hasLeft)=>!hasStraight&&hasLeft?left:straight;
  internal static int Score(string name,string preferred,string original,bool leftArrow=true){
  if(!name.StartsWith("CSKR",StringComparison.OrdinalIgnoreCase)||name.IndexOf("Flashing",StringComparison.OrdinalIgnoreCase)>=0)return -1;
  bool two=name.IndexOf("3w2l",StringComparison.OrdinalIgnoreCase)>=0,one=name.IndexOf("3w1l",StringComparison.OrdinalIgnoreCase)>=0;if(!two&&!one)return -1;

@@ -53,7 +53,7 @@ public partial class LeftSignalSystem:GameSystemBase {
  }
  HiddenCount=_owned.Count;
  }
- private void Evaluate(Entity owner){if(!KoreanJunctionSystem.Selected(EntityManager,owner)){RemoveOwner(owner);return;}
+ private void Evaluate(Entity owner){if(!KoreanJunctionSystem.VisualSelected(EntityManager,owner)){RemoveOwner(owner);return;}
  if(!EntityManager.Exists(owner)||!EntityManager.HasBuffer<Game.Objects.SubObject>(owner))return;
  Entity[] children;using(var a=EntityManager.GetBuffer<Game.Objects.SubObject>(owner,true).ToNativeArray(Allocator.Temp)){children=new Entity[a.Length];for(int i=0;i<a.Length;i++)children[i]=a[i].m_SubObject;}
  var overrides=World.GetExistingSystemManaged<OverrideSystem>();
