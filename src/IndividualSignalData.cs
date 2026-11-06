@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,6 +9,7 @@ using Unity.Entities;using Unity.Collections;using Unity.Mathematics;
 namespace TrafficLightIntoKorea {
 public partial class IndividualSignalData:GameSystemBase {
  private readonly BulkFarPolicy _bulkFar=new BulkFarPolicy(); internal void SetBulkNearOnly(Entity node,bool value)=>_bulkFar.Set(NodeKey(node),value); internal bool BulkNearOnly(Entity node)=>_bulkFar.NearOnly(NodeKey(node));
+ private readonly HashSet<string> _legacyChoiceProbed=new HashSet<string>(StringComparer.Ordinal);
  private readonly Dictionary<string,SignalChoice> _choices=new Dictionary<string,SignalChoice>();
  private readonly List<Entity> _savedNodes=new List<Entity>();private string _loadId,_snapshot,_saveName;private bool _ready,_saving,_readFailed;
  private readonly RestoreNodeState _restoreState=new RestoreNodeState();private HashSet<string> _unresolved=>_restoreState.Pending;
@@ -31,13 +32,35 @@ public partial class IndividualSignalData:GameSystemBase {
    links.Add(Point(EntityManager.GetComponentData<Game.Net.Node>(other).m_Position)+":"+name);
   }links.Sort(StringComparer.Ordinal);return Hash(Point(EntityManager.GetComponentData<Game.Net.Node>(node).m_Position)+"|"+string.Join("|",links));
  }
- internal string Key(Entity owner,Entity source,bool legacy=false){var node=legacy?LegacyNodeKey(owner):NodeKey(owner);if(node==null||!EntityManager.Exists(source)||EntityManager.HasComponent<Deleted>(source)||EntityManager.HasComponent<Temp>(source)||!EntityManager.HasComponent<Transform>(source)||!EntityManager.HasComponent<PrefabRef>(source))return null;
+ internal string Key(Entity owner,Entity source,bool legacy=false,bool previous=false,float heightOffset=0){var node=legacy?LegacyNodeKey(owner):NodeKey(owner);if(node==null||!EntityManager.Exists(source)||EntityManager.HasComponent<Deleted>(source)||EntityManager.HasComponent<Temp>(source)||!EntityManager.HasComponent<Transform>(source)||!EntityManager.HasComponent<PrefabRef>(source))return null;
   var t=EntityManager.GetComponentData<Transform>(source);var p=EntityManager.GetComponentData<PrefabRef>(source).m_Prefab;if(!World.GetExistingSystemManaged<PrefabSystem>().TryGetPrefab<PrefabBase>(p,out var asset))return null;
   // Refuse indistinguishable overlapping originals rather than applying to both.
-  if(EntityManager.HasBuffer<Game.Objects.SubObject>(owner))foreach(var item in EntityManager.GetBuffer<Game.Objects.SubObject>(owner,true)){var e=item.m_SubObject;if(e==source||!EntityManager.Exists(e)||EntityManager.HasComponent<KoreanSignalClone>(e)||!EntityManager.HasComponent<TrafficLight>(e)||!EntityManager.HasComponent<PrefabRef>(e)||!EntityManager.HasComponent<Transform>(e))continue;var o=EntityManager.GetComponentData<Transform>(e);if(EntityManager.GetComponentData<PrefabRef>(e).m_Prefab==p&&math.distancesq(o.m_Position,t.m_Position)<.0025f&&math.abs(math.dot(o.m_Rotation.value,t.m_Rotation.value))>.9999f)return null;}
-  var forward=math.rotate(t.m_Rotation,new float3(0,0,1));return Hash(node+"|"+asset.name+"|"+Point(t.m_Position)+"|"+Point(forward));
+  if(EntityManager.HasBuffer<Game.Objects.SubObject>(owner))foreach(var item in EntityManager.GetBuffer<Game.Objects.SubObject>(owner,true)){var e=item.m_SubObject;if(e==source||!EntityManager.Exists(e)||EntityManager.HasComponent<KoreanSignalClone>(e)||!EntityManager.HasComponent<TrafficLight>(e)||!EntityManager.HasComponent<PrefabRef>(e)||!EntityManager.HasComponent<Transform>(e))continue;var o=EntityManager.GetComponentData<Transform>(e);if(EntityManager.GetComponentData<PrefabRef>(e).m_Prefab==p&&((legacy||previous)?math.distancesq(o.m_Position,t.m_Position):math.distancesq(o.m_Position.xz,t.m_Position.xz))<.0025f&&math.abs(math.dot(o.m_Rotation.value,t.m_Rotation.value))>.9999f)return null;}
+  var forward=math.rotate(t.m_Rotation,new float3(0,0,1));
+  // Native object elevation is recomputed on load (observed 0.5m drift). It is not identity.
+  var position=t.m_Position;position.y=legacy||previous?position.y+heightOffset:0;
+  return Hash((legacy||previous?"":"S3|")+node+"|"+asset.name+"|"+Point(position)+"|"+Point(forward));
  }
- internal SignalChoice Get(Entity owner,Entity source){if(_choices.Count==0)return null;RuntimeDiagnostics.Count("settings.lookup");var key=Key(owner,source);if(key!=null&&_choices.TryGetValue(key,out var c))return c;var old=Key(owner,source,true);return old!=null&&_choices.TryGetValue(old,out c)?c:null;}
+ internal SignalChoice Get(Entity owner,Entity source){
+  if(_choices.Count==0)return null;RuntimeDiagnostics.Count("settings.lookup");
+  var key=Key(owner,source);if(key==null)return null;if(_choices.TryGetValue(key,out var c))return c;
+  // Probe old height-sensitive hashes once per stable identity, never per rendered frame.
+  if(!_legacyChoiceProbed.Add(key))return null;
+  SignalChoice found=null;string foundKey=null;
+  var transform=EntityManager.GetComponentData<Transform>(source);
+  World.GetExistingSystemManaged<PrefabSystem>().TryGetPrefab<PrefabBase>(EntityManager.GetComponentData<PrefabRef>(source).m_Prefab,out var prefab);
+  var nodes=new[]{NodeKey(owner),LegacyNodeKey(owner)};var direction=Point(math.rotate(transform.m_Rotation,new float3(0,0,1)));
+  for(int step=-20;step<=20;step++)for(int generation=0;generation<2;generation++){
+   if(nodes[generation]==null)continue;var point=transform.m_Position;point.y+=step*.1f;
+   var old=Hash(nodes[generation]+"|"+prefab.name+"|"+Point(point)+"|"+direction);
+   if(old==null||!_choices.TryGetValue(old,out var candidate))continue;
+   if(foundKey!=null&&foundKey!=old){RuntimeDiagnostics.Event("Ambiguous legacy signal identity; settings retained without applying");return null;}
+   found=candidate;foundKey=old;
+  }
+  if(found==null)return null;
+  _choices.Remove(foundKey);found.key=key;_choices[key]=found;
+  RuntimeDiagnostics.Event("Migrated height-sensitive signal choice to stable identity");return found;
+ }
  internal bool Set(Entity owner,Entity source,string action,string asset,bool far){if(!_ready)return false;var key=Key(owner,source);if(key==null)return false;if(!_choices.TryGetValue(key,out var c)){var old=Get(owner,source);c=new SignalChoice{key=key,nearRoadName=old?.nearRoadName??"",farRoadName=old?.farRoadName??"",nearAsset=old?.nearAsset??"",farAsset=old?.farAsset??"",farMode=old?.farMode??-1,nearHidden=old?.nearHidden??false,nearSigns=old?.nearSigns,farSigns=old?.farSigns,nearProps=old?.nearProps,nearOffset=old?.nearOffset??0,nearRotation=old?.nearRotation??0,nearLateral=old?.nearLateral??0,farOffset=old?.farOffset??0,farRotation=old?.farRotation??0,farLateral=old?.farLateral??0,manualPosition=old?.manualPosition,manualRotation=old?.manualRotation,farProps=old?.farProps};}
   if(action=="hideNear"&&!far){if(!(World.GetExistingSystemManaged<FarSignalSystem>()?.DisplayReady(source)??false))return false;c.nearHidden=true;c.farMode=1;}else if(action=="restoreNear"&&far)c.nearHidden=false;else
   if(action=="offset"||action=="rotation"||action=="lateral"){if(!float.TryParse(asset,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out var offset)||float.IsNaN(offset)||float.IsInfinity(offset))return false;if(far){if(action=="rotation")c.farRotation=FarOffsetRules.FarRotation(offset);else if(action=="lateral")c.farLateral=FarOffsetRules.Clamp(offset);else c.farOffset=FarOffsetRules.Clamp(offset);}else{if(action=="rotation")c.nearRotation=FarOffsetRules.Rotation(offset);else if(action=="lateral")c.nearLateral=FarOffsetRules.Clamp(offset);else c.nearOffset=FarOffsetRules.Clamp(offset);}_choices[key]=c;if(far)World.GetExistingSystemManaged<FarSignalSystem>()?.RefreshOwner(owner);else{var approach=World.GetExistingSystemManaged<ApproachSignalSystem>();if(approach!=null&&!approach.RefreshPlacement(owner,source))approach.RefreshOwner(owner);}return true;}
@@ -55,11 +78,11 @@ public partial class IndividualSignalData:GameSystemBase {
  }
  protected override void OnCreate(){base.OnCreate();GameManager.instance.onGameSaveLoad+=Saved;}
  protected override void OnDestroy(){GameManager.instance.onGameSaveLoad-=Saved;base.OnDestroy();}
- protected override void OnGamePreload(Colossal.Serialization.Entities.Purpose p,GameMode m){_ready=false;_saving=false;_readFailed=false;_retainedNodes.Clear();_bulkFar.Clear();_restoreState.Clear();_restoreScan=null;_restorePass=0;_restored=0;_stalledPasses=0;SaveStatus="";SaveProblem="";HasForcedFar=false;_choices.Clear();_snapshot=null;_savedNodes.Clear();_loadId=null;base.OnGamePreload(p,m);}
+ protected override void OnGamePreload(Colossal.Serialization.Entities.Purpose p,GameMode m){_ready=false;_saving=false;_readFailed=false;_retainedNodes.Clear();_bulkFar.Clear();_restoreState.Clear();_restoreScan=null;_restorePass=0;_restored=0;_stalledPasses=0;SaveStatus="";SaveProblem="";HasForcedFar=false;_choices.Clear();_legacyChoiceProbed.Clear();_snapshot=null;_savedNodes.Clear();_loadId=null;base.OnGamePreload(p,m);}
  protected override void OnGameLoaded(Colossal.Serialization.Entities.Context context){base.OnGameLoaded(context);_loadId=context.instigatorGuid.ToString();RuntimeDiagnostics.Event("Individual sidecar load ID="+_loadId);}
  private static string Folder=>Path.Combine(UnityEngine.Application.persistentDataPath,"ModsData","TrafficLightIntoKorea","IndividualSignals");
  private static string FileFor(string id){if(string.IsNullOrEmpty(id)||id.Any(c=>!Uri.IsHexDigit(c)&&c!='-'))throw new InvalidDataException("Invalid save identifier");return Path.Combine(Folder,id+".json");}
- protected override void OnGameLoadingComplete(Colossal.Serialization.Entities.Purpose p,GameMode m){base.OnGameLoadingComplete(p,m);_ready=m==GameMode.Game;if(!_ready||string.IsNullOrEmpty(_loadId))return;
+ protected override void OnGameLoadingComplete(Colossal.Serialization.Entities.Purpose p,GameMode m){base.OnGameLoadingComplete(p,m);_ready=m==GameMode.Game;if(!_ready||string.IsNullOrEmpty(_loadId))return;RuntimeDiagnostics.Event("Settings at save load: enabled="+(Mod.Settings?.Enabled??false)+" id="+_loadId);
   try{var file=FileFor(_loadId);var data=SidecarStorage.Read(file,out var recovered);if(data==null){SaveStatus="이 세이브의 개별 설정 파일이 없습니다. / No settings sidecar for this save.";RuntimeDiagnostics.Event("Individual sidecar missing: "+file+"; local/cloud transfer requires matching JSON");return;}if(recovered){SaveStatus="설정 백업에서 복원했습니다. / Recovered settings from backup.";RuntimeDiagnostics.Event("Individual sidecar recovered from backup: "+file);}
    // Older Unity JSON files omit empty arrays. An absent signals array is valid.
    foreach(var c in data.signals??new SignalChoice[0])if(c!=null&&!string.IsNullOrEmpty(c.key)&&c.farMode>=-1&&c.farMode<=1)_choices[c.key]=c;
@@ -70,11 +93,12 @@ public partial class IndividualSignalData:GameSystemBase {
   }catch(Exception e){_readFailed=true;SaveStatus="개별 설정 파일을 불러오지 못했습니다: "+e.Message;SaveProblem=SaveStatus;RuntimeDiagnostics.Event(SaveStatus);}
  }
  internal void TraceNode(Entity node,string action){RuntimeDiagnostics.Event("Individual "+action+" node="+node+" key="+NodeKey(node));}
- internal void ForgetAllNodes(){_bulkFar.Clear();_retainedNodes.UnionWith(_unresolved);_unresolved.Clear();_restoreScan=null;_restorePass=RestorePassLimit;}
- internal void ForgetNode(Entity node){SetBulkNearOnly(node,false);var key=NodeKey(node);if(key!=null){if(EntityManager.HasComponent<KoreanJunction>(node)||_unresolved.Contains(key))_retainedNodes.Add(key);_unresolved.Remove(key);}var legacy=LegacyNodeKey(node);if(legacy!=null)_unresolved.Remove(legacy);}
+ internal void ForgetAllNodes(){_bulkFar.Clear();_retainedNodes.UnionWith(_unresolved);_retainedNodes.UnionWith(_restoreState.Dormant);_restoreState.Clear();_restoreScan=null;_restorePass=RestorePassLimit;}
+ internal void ForgetNode(Entity node){SetBulkNearOnly(node,false);var key=NodeKey(node);if(key!=null){if(EntityManager.HasComponent<KoreanJunction>(node)||_unresolved.Contains(key))_retainedNodes.Add(key);_restoreState.Forget(key);}var legacy=LegacyNodeKey(node);if(legacy!=null)_restoreState.Forget(legacy);}
  private const int RestorePassLimit=25;
  private string RestoreKey(Entity node){if(!EntityManager.Exists(node)||EntityManager.HasComponent<Deleted>(node)||EntityManager.HasComponent<Temp>(node))return null;RuntimeDiagnostics.Count("restore.nodeKey");return NodeKey(node);}
  private bool RestoreNode(Entity node,string key,string legacy){
+  _restoreState.Matched(key);_restoreState.Matched(legacy);
   using(RuntimeDiagnostics.Measure("Individual.RestoreSelect"))World.GetExistingSystemManaged<KoreanJunctionSystem>()?.Select(node,true);
   if(!EntityManager.HasComponent<KoreanJunction>(node))return false;
   _restored++;RuntimeDiagnostics.Event("Individual restored node="+node+" key="+key+(legacy==null?"":" legacy="+legacy));return true;
@@ -102,7 +126,7 @@ public partial class IndividualSignalData:GameSystemBase {
   _restoreScan.Step(64,.5);
   if(_restoreScan.Done){_restoreState.CompletePass(_restoreNodeCount);_restoreScan=null;_restorePass++;_stalledPasses=_unresolved.Count<_restoreStartCount?0:_stalledPasses+1;_nextRestore=UnityEngine.Time.realtimeSinceStartup+IncrementalNodeRestore<Entity>.RetryDelay(_stalledPasses);SaveStatus="교차로 복원 "+_restored+"개 · 미확인 "+_unresolved.Count+"개 · 자동 검색 제외 "+_restoreState.Dormant.Count+"개";RuntimeDiagnostics.Event("Individual restore pass="+_restorePass+" restored="+_restored+" unresolved="+_unresolved.Count+" dormant="+_restoreState.Dormant.Count);}
  }
- internal void BeforeSave(){if(!_ready||_saving)return;_saving=true;_savedNodes.Clear();var keys=new HashSet<string>(_unresolved,StringComparer.Ordinal);using(var q=EntityManager.CreateEntityQuery(ComponentType.ReadOnly<KoreanJunction>(),ComponentType.Exclude<Deleted>(),ComponentType.Exclude<Temp>()))using(var nodes=q.ToEntityArray(Allocator.Temp))foreach(var n in nodes){_savedNodes.Add(n);var key=NodeKey(n);if(key!=null){keys.Add(key);RuntimeDiagnostics.Event("Individual save node="+n+" key="+key);}}
+ internal void BeforeSave(){if(!_ready||_saving)return;RuntimeDiagnostics.Event("Settings at save: enabled="+(Mod.Settings?.Enabled??false));_saving=true;_savedNodes.Clear();var keys=new HashSet<string>(_unresolved,StringComparer.Ordinal);using(var q=EntityManager.CreateEntityQuery(ComponentType.ReadOnly<KoreanJunction>(),ComponentType.Exclude<Deleted>(),ComponentType.Exclude<Temp>()))using(var nodes=q.ToEntityArray(Allocator.Temp))foreach(var n in nodes){_savedNodes.Add(n);var key=NodeKey(n);if(key!=null){keys.Add(key);RuntimeDiagnostics.Event("Individual save node="+n+" key="+key);}}
   _snapshot=_readFailed?null:Newtonsoft.Json.JsonConvert.SerializeObject(new SignalSidecar{saveName=_saveName,nearOnlyNodes=_bulkFar.Save(keys),retainedNodes=_retainedNodes.ToArray(),nodes=_restoreState.ActiveForSave(keys),dormantNodes=_restoreState.DormantForSave(keys),signals=_choices.Values.ToArray()},Newtonsoft.Json.Formatting.Indented);
   // Strip even the legacy serializable junction tag. Native save contains no dependency on this tag.
   foreach(var n in _savedNodes)EntityManager.RemoveComponent<KoreanJunction>(n);

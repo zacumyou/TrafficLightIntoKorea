@@ -1,3 +1,9 @@
+# 2.3.69
+
+설정에서 새 교차로에 한국식 신호등을 자동 적용할 수 있습니다. 기본값은 꺼짐입니다.
+
+You can now automatically add Korean traffic lights to newly built junctions. Turn this on in the mod settings.
+
 # 2.3.66
 
 

@@ -2,7 +2,7 @@
  * Cities: Skylines II UI Module
  * Id: TrafficLightIntoKorea
  * Author: zacum
- * Version: 2.3.66
+ * Version: 2.3.69
  * Dependencies:
  */
 // The existing DOM panel remains unchanged. Only the tooltip is rendered by CS2.

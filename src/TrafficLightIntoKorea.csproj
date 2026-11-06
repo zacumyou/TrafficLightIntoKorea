@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
- <PropertyGroup><Version>2.3.66</Version><AssemblyTitle>TRAFFIC LIGHT INTO KOREA</AssemblyTitle><Product>TRAFFIC LIGHT INTO KOREA</Product><AssemblyName>TrafficLightIntoKorea</AssemblyName></PropertyGroup>
+ <PropertyGroup><Version>2.3.69</Version><AssemblyTitle>TRAFFIC LIGHT INTO KOREA</AssemblyTitle><Product>TRAFFIC LIGHT INTO KOREA</Product><AssemblyName>TrafficLightIntoKorea</AssemblyName></PropertyGroup>
  <Import Project="$(CSII_TOOLPATH)\Mod.props" />
  <Import Project="$(CSII_TOOLPATH)\Mod.targets" />
  <PropertyGroup>
