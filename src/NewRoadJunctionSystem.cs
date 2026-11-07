@@ -1,8 +1,8 @@
-using System.Collections.Generic;
 using Game;
 using Game.Common;
 using Game.Net;
 using Game.Tools;
+using Game.Prefabs;
 using Unity.Collections;
 using Unity.Entities;
 
@@ -28,12 +28,30 @@ namespace TrafficLightIntoKorea {
    }
    return false;
   }
+  // Check every connected road, including arms after the third one.
+  // A ramp joining a city road must not acquire automatic signals either.
+  internal static bool AllowsAutomaticSignals(EntityManager em, Entity node) {
+   if (!HasRoadJunction(em, node)) return false;
+   var arms = em.GetBuffer<ConnectedEdge>(node, true);
+   foreach (var arm in arms) {
+    var edge = arm.m_Edge;
+    if (!em.HasComponent<Road>(edge) || em.HasComponent<Deleted>(edge)) continue;
+    if (em.HasComponent<Temp>(edge) &&
+        (em.GetComponentData<Temp>(edge).m_Flags & (TempFlags.Delete | TempFlags.Cancel)) != 0) continue;
+    if (!em.HasComponent<PrefabRef>(edge)) return false;
+    var prefab = em.GetComponentData<PrefabRef>(edge).m_Prefab;
+    if (!em.HasComponent<RoadData>(prefab)) return false;
+    if ((em.GetComponentData<RoadData>(prefab).m_Flags & Game.Prefabs.RoadFlags.UseHighwayRules) != 0) return false;
+
+   }
+   return true;
+  }
   protected override void OnUpdate(){
    var junctions=KoreanJunctionSystem.Active;
    if(junctions==null||!junctions.AcceptNewRoadJunctions)return;
    using(var nodes=_nodes.ToEntityArray(Allocator.Temp))foreach(var node in nodes){
     var temp=EntityManager.GetComponentData<Temp>(node);
-    if((temp.m_Flags&(TempFlags.Delete|TempFlags.Cancel))!=0||!HasRoadJunction(EntityManager,node))continue;
+    if((temp.m_Flags&(TempFlags.Delete|TempFlags.Cancel))!=0||!AllowsAutomaticSignals(EntityManager,node))continue;
     if(temp.m_Original!=Entity.Null&&HasRoadJunction(EntityManager,temp.m_Original))continue;
     junctions.QueueNewRoadJunction(temp.m_Original==Entity.Null||(temp.m_Flags&TempFlags.Replace)!=0?node:temp.m_Original);
    }
@@ -48,7 +66,7 @@ namespace TrafficLightIntoKorea {
    if(!AcceptNewRoadJunctions){_newRoadJunctions.Clear();return;}
    var node=_newRoadJunctions.Dequeue();
    if(!EntityManager.Exists(node)||EntityManager.HasComponent<Deleted>(node)||EntityManager.HasComponent<Temp>(node)
-    ||Selected(EntityManager,node)||!NewRoadJunctionSystem.HasRoadJunction(EntityManager,node))return;
+    ||Selected(EntityManager,node)||!NewRoadJunctionSystem.AllowsAutomaticSignals(EntityManager,node))return;
    if(EntityManager.HasComponent<TrafficLights>(node))Select(node,true);
    else BeginSignalCreation(node);
   }

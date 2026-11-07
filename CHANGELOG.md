@@ -1,3 +1,9 @@
+# 2.3.70
+
+고속도로 분기점에 신호등이 자동 생성되는 문제를 수정했습니다.
+
+Fixed traffic lights being automatically added at highway junctions.
+
 # 2.3.69
 
 설정에서 새 교차로에 한국식 신호등을 자동 적용할 수 있습니다. 기본값은 꺼짐입니다.

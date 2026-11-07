@@ -1,6 +1,6 @@
-# Traffic Light Into Korea — 2.3.69
+# Traffic Light Into Korea — 2.3.70
 
-Cities: Skylines II의 교차로 신호등을 한국식 외형으로 바꾸는 모드입니다. 이 저장소는 Paradox Mods에 공개한 **2.3.69**의 소스, UI 리소스 및 회귀 테스트를 제공합니다.
+Cities: Skylines II의 교차로 신호등을 한국식 외형으로 바꾸는 모드입니다. 이 저장소는 Paradox Mods에 공개한 **2.3.70**의 소스, UI 리소스 및 회귀 테스트를 제공합니다.
 
 - [Paradox Mods](https://mods.paradoxplaza.com/mods/159262/Windows)
 - [필수 신호등·표지판 에셋 팩](https://mods.paradoxplaza.com/mods/159257/Windows)
@@ -26,7 +26,7 @@ Cities: Skylines II의 교차로 신호등을 한국식 외형으로 바꾸는 �
 4. 커서 배치는 개별 편집의 배치 항목에서 시작하고, 좌클릭으로 확정하거나 우클릭으로 취소합니다.
 5. 편집 후 도시를 저장합니다.
 
-## 2.3.69 성능 및 저장 변경
+## 2.3.70 성능 및 저장 변경
 
 게임의 자동 숨김 해제와 TLIK의 재숨김이 매 프레임 반복되던 경로를 수정했습니다. 새 표시 객체는 프레임당 최대 4개로 나누어 생성하며, 반복적인 저장 키 계산·렌더 쓰기·표지판 재검사 비용도 줄였습니다.
 
@@ -44,10 +44,10 @@ Cities: Skylines II의 교차로 신호등을 한국식 외형으로 바꾸는 �
 
 ## English
 
-This repository contains the source, UI resources and regression tests for **Traffic Light Into Korea 2.3.69**, published on [Paradox Mods](https://mods.paradoxplaza.com/mods/159262/Windows). The [asset pack](https://mods.paradoxplaza.com/mods/159257/Windows) is required.
+This repository contains the source, UI resources and regression tests for **Traffic Light Into Korea 2.3.70**, published on [Paradox Mods](https://mods.paradoxplaza.com/mods/159262/Windows). The [asset pack](https://mods.paradoxplaza.com/mods/159257/Windows) is required.
 
 Apply Korean visuals per junction or city-wide, edit individual signals and signs, and place linked duplicates with a cursor inside a 60m radius. Duplicate rotation supports ±90 degrees. The mod follows native signal states and does not change traffic permissions or signal timing.
 
-Version 2.3.69 prevents repeated native unhide/TLIK re-hide processing, spreads new signal creation over frames, and parks unresolved junction identifiers in `dormantNodes`. Save after restoration checks finish to exclude these identifiers from automatic searches on the next load. Individual signal settings remain stored; junctions can be reapplied manually.
+Version 2.3.70 prevents repeated native unhide/TLIK re-hide processing, spreads new signal creation over frames, and parks unresolved junction identifiers in `dormantNodes`. Save after restoration checks finish to exclude these identifiers from automatic searches on the next load. Individual signal settings remain stored; junctions can be reapplied manually.
 
 Back up the city and its sidecar JSON together. Do not enable local and subscribed copies simultaneously. SDK builds and automated fixtures passed; in-game FPS gains and all mod combinations remain unverified. See [BUILDING.md](BUILDING.md), [CHANGELOG.md](CHANGELOG.md), and [package/readme.txt](package/readme.txt).
